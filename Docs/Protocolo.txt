@@ -1,0 +1,20 @@
+Nuevo cliente -> Manda mensaje HOLA
+Cliente se desconecta -> Manda mensaje ADIOS
+
+Cuando el servidor recibe el mensaje HOLA, envia un mensaje al resto de los usuarios
+un mensaje ON con los datos del usuario. Ademas envia un mensaje
+INFO con el estado del servidor y los jugadores.
+INFOkey1;x1;y1@key2;x2;y2@key3;x3;y3...
+
+Cuando el servidor recibe el mensaje ADIOS manda un mensaje OFF con el identificador del usuario.
+
+Cuando el cliente se mueve manda mensaje GAME seguido de su posicion, el servidor lo envia
+al resto de usuarios.
+
+Idea:
+Un User es toda la informacion de usuario (nivel, estadisticas, foto cosas etc)
+Un User contiene un Player con la informacion del objeto, su posicion, color, etc
+un usuario nuevo se conecta, manda toda su info al servidor y se crea un User con toda la info
+cuando este modifica informacion, se modifica en el servidor
+Cuando un nuevo usuario se conecta, recibe la informacion de todos los usuarios ya conectados
+y los ya conectados la del mismo, creandose en el cliente un User que con toda esa informacion
