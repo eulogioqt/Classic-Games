@@ -324,7 +324,7 @@ MonoBehaviour:
   m_ReferencePixelsPerUnit: 100
   m_ScaleFactor: 1
   m_ReferenceResolution: {x: 1920, y: 1080}
-  m_ScreenMatchMode: 2
+  m_ScreenMatchMode: 1
   m_MatchWidthOrHeight: 0
   m_PhysicalUnit: 3
   m_FallbackScreenDPI: 96
@@ -387,9 +387,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 406057f6df6e29143a3dc03bea5b7dd6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  chatText: {fileID: 0}
-  sendButton: {fileID: 0}
-  sendText: {fileID: 0}
+  chatText: {fileID: 2017391445}
+  sendButton: {fileID: 1022682024}
+  sendText: {fileID: 1583137495}
   serverPort: 11000
 --- !u!1 &519420028
 GameObject:
