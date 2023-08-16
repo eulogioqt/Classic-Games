@@ -6,7 +6,6 @@ using System.Text;
 using System.Collections;
 using System;
 using System.Collections.Generic;
-using UnityEditor.VersionControl;
 
 public class UDPTest : MonoBehaviour {
 
@@ -70,12 +69,11 @@ public class UDPTest : MonoBehaviour {
      * 
     */
 
-    // que no se pueda salir de las paredes
-    // chat deslizable
-    // decorar un poco todo
-    // F11 pantalla completa
+    // decorar un poco todo - version 6
+    // timeout mensjes que tengas que responder - version 6
+    // guardar chat - version 6
 
-    // timeout mensjes que tengas que responder
+    // version 9000 cuentas
 
     private void Awake() {
         if(instance != null && instance != this) {
