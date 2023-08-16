@@ -4,10 +4,12 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -26,6 +28,7 @@ public class UDPServer {
 	// USUARIOS
 	
 	private static Map<String, User> users;
+	private static List<ChatMessage> chat;
 	
 	private static DatagramSocket initSocket(int puerto) {
 		DatagramSocket s = null;
@@ -53,6 +56,7 @@ public class UDPServer {
 	
 	public static void main(String[] args) throws IOException {
 		users = new HashMap<>();
+		chat = new ArrayList<>();
 		
 		DatagramSocket s = initSocket(11000);
 
@@ -69,36 +73,55 @@ public class UDPServer {
 			
 			String key = dp.getAddress() + ":" + dp.getPort();
 			
-			if(texto.equals("HOLA")) {
-				users.put(key, new User(dp.getAddress(), dp.getPort()));
+			if(texto.startsWith("HOLA")) {
+				texto = texto.substring(4);
 				
-				String ON = "ON" + key; // añadir datos de usuario, nombre, color cosas asi
-				String INFO = "INFO";
+				users.put(key, new User(dp.getAddress(), dp.getPort(), texto));
+				
+				String ON = "ON " + key + " " + texto; // añadir datos de usuario, nombre, color cosas asi
+				String INFO = "INFO\n";
 				for(User user : getRestUsers(key)) {
-					s.send(createDatagram(ON, user));
-					INFO += user.getAddress() + ":" + user.getPort() + ";" + user.getX() + ";" + user.getY() + "@";
+					s.send(createDatagram(ON, user)); // Envia el ON al resto
+					
+					INFO += user.getAddress() + ":" + user.getPort() + " " + user.getName() + ";" + user.getX() + ";" + user.getY() + "\n";
 				}
-				INFO = INFO.substring(0, INFO.length() - 1);
+				INFO += ".\n";
+				
+				for(ChatMessage message : chat) { // añade el chat al cuerpo del mensaje INFO
+					INFO += message.getSender() + ";" + message.getMessage() + "\n";
+				}
+				INFO += ".";
+				
 				s.send(createDatagram(INFO, users.get(key)));
 				
+				chat.add(new ChatMessage(users.get(key).getName() ," joined the server"));
 				System.out.println("- Nuevo usuario conectado: " + dp.getAddress() + ":" + dp.getPort() + " - Online: " + users.size());
-			} else if (texto.equals("ADIOS")) {
+			} else if (texto.startsWith("ADIOS")) {
 				users.remove(key);
 				
 				String OFF = "OFF" + key;
 				for(User user : getRestUsers(key))
 					s.send(createDatagram(OFF, user));
 				
+				chat.add(new ChatMessage(users.get(key).getName() ," left the server"));
 				System.out.println("- Usuario se desconecto: " + dp.getAddress() + ":" + dp.getPort() + " - Online: " + users.size());
-			} else if (texto.startsWith("CHAT") || texto.startsWith("GAME")){
+			} if (texto.startsWith("GAME")) {
 				System.out.println("Mensaje " + texto + " (recibido desde: " + dp.getAddress() + ":" + dp.getPort() + ")");
 				
-				if(texto.startsWith("GAME")) {
-					String data[] = texto.substring(4).split(";");
-					users.get(key).setPosition(Integer.parseInt(data[0]), Integer.parseInt(data[1]));
-				}
-				
+				String data[] = texto.substring(4).split(";");
+				users.get(key).setPosition(Integer.parseInt(data[0]), Integer.parseInt(data[1]));
+
 				texto += "@" + key;
+				
+				for(User user : getRestUsers(key))
+					s.send(createDatagram(texto, user));
+				
+				System.out.println("- Enviando a todos los usuarios");
+			} else if (texto.startsWith("CHAT") || texto.startsWith("GAME")){
+				System.out.println("Mensaje " + texto + " (recibido desde: " + dp.getAddress() + ":" + dp.getPort() + ")");
+
+				chat.add(new ChatMessage(users.get(key).getName(), texto.substring(5)));
+				texto = "CHAT " + key + " " + texto.substring(5);
 				
 				for(User user : getRestUsers(key))
 					s.send(createDatagram(texto, user));

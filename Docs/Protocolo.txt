@@ -10,6 +10,7 @@ Cuando el servidor recibe el mensaje ADIOS manda un mensaje OFF con el identific
 
 Cuando el cliente se mueve manda mensaje GAME seguido de su posicion, el servidor lo envia
 al resto de usuarios.
+GAMEx;y@key
 
 Idea:
 Un User es toda la informacion de usuario (nivel, estadisticas, foto cosas etc)
@@ -18,3 +19,60 @@ un usuario nuevo se conecta, manda toda su info al servidor y se crea un User co
 cuando este modifica informacion, se modifica en el servidor
 Cuando un nuevo usuario se conecta, recibe la informacion de todos los usuarios ya conectados
 y los ya conectados la del mismo, creandose en el cliente un User que con toda esa informacion
+
+Estructura:
+	Cliente:
+		- Objeto User que contiene datos como nombre... y un objeto Player que contiene la posicion y sus detalles,
+		además de las funciones necesarias que requiera el cliente
+		- Lista con el RESTO de usuarios conectados que se va actualizando.
+
+	Servidor:
+		- Objeto User que almacena datos como nombre... y el objeto Player que solo almacena informacion. 
+		No hace calculos ni procesamientos.
+
+		- Lista con todos los usuarios conectados que se va actualizando.
+
+key = IP:PUERTO
+data = nombre;pos
+pos = x;y
+
+chat = 
+name1;mensaje1
+name2;mensaje2
+name3;mensaje3
+
+CGTP - Classic Games Transmission Protocol
+
+HOLA data (Cliente -> Servidor) => Lo envia el cliente cuando se conecta, el servidor registra la data del usuario
+y su key (no se indica explicitamente ya que la cabecera del datagrama contiene esta información), luego, el servidor
+enviará un mensaje ON al resto de usuarios. Tambien enviara un mensaje INFO al usuario que envio HOLA.
+
+ADIOS (Cliente -> Servidor) => El cliente lo envía cuando se desconecta, el servidor lo borra de la lista e informa al
+resto de usuarios con el mensaje OFF.
+
+ON key data (Servidor -> Cliente) => El servidor envía a todos los usuarios (salvo el que envió HOLA) este mensaje
+para que los clientes registren la conexion del usuario, junto con su data.
+
+OFF key (Servidor -> Cliente) => El servidor envía a todos los usuarios (salvo el que envió ADIOS) este mensaje
+para que los clientes registren la desconexión del usuario.
+
+INFO
+key1 data1 
+key2 data2 
+key3 data3
+.
+chat
+.
+
+(Servidor -> Cliente) => Como respuesta a un mensaje HOLA, lo envia el servidor
+al cliente para que conozca el estado del servidor, y pueda conocer la posicion y datos del resto de usuarios conectados.
+
+CHAT mensaje (Cliente -> Servidor) => El cliente envia un mensaje en el chat
+
+CHAT key mensaje (Servidor -> Cliente) => El servidor difunde un mensaje enviado por un cliente al chat, con su key
+para que el resto puedan identificarlo.
+
+MOV pos (Cliente -> Servidor) => El cliente envia una actualizacion de movimiento
+
+MOV key pos (Servidor -> Cliente) => El servidor difunde una actualizacion de movimiento, con su key para que
+el resto puedan identificarlo

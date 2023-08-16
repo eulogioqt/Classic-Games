@@ -6,6 +6,7 @@ using System.Text;
 using System.Collections;
 using System;
 using System.Collections.Generic;
+using UnityEditor.VersionControl;
 
 public class UDPTest : MonoBehaviour {
 
@@ -24,19 +25,57 @@ public class UDPTest : MonoBehaviour {
     public Button openChatButton;
 
     public Text onlineText;
-    private int onlineUsers = 0;
+    private int onlineUsers = 1;
+    private string myName;
 
     private Dictionary<string, Player> users;
-    private Player player;
+    private Player player = null;
 
     public Button exitButton;
-    // PORQUE SI MANDO EN BROADCST NO ME PUEDEN RESPONDER WTF ESO NO LO ENTIENDE NI DON GABRIEL LUQUE
+
+    public SmartButton upButton;
+    public SmartButton rightButton;
+    public SmartButton downButton;
+    public SmartButton leftButton;
+
+    public InputField nameField;
+    public Button confirmNameButton;
+    public GameObject nameMenuGameObject;
+
     private UdpClient client;
     private IPEndPoint server;
     //on application quit and why cant answer to broadcast udp
     // numero de gente online
-
+    // PORQUE SI MANDO EN BROADCST NO ME PUEDEN RESPONDER WTF ESO NO LO ENTIENDE NI DON GABRIEL LUQUE
     private static UDPTest instance;
+
+    public static int FPU = 5; // Frames Per Update
+
+    // ESTRUCTURAR BIEN EL CODIGO Y HACER QUE PUEDAS PERSONALIZAR
+    // TU CUADRADO CON COLORES SKINS Y DEMAS
+    // Y TENER TU PROPIO NOMBRE Y QUE ESTO SE QUEDE COMO EL LOBBY
+    // PARA LOS OTROS JUEGOS
+
+    // CONECTARSE Y DESCONECTARSE PREGUNTANDO SI SIGUE AHI CON EL SERVIDOR
+
+    // join and left messages mejorado con distintos tipos d mensaje
+
+    /*
+     * en vez de enviar cada movimiento q haces, cada 0.05s o cosa asi, despues 
+     * cuando el servidor envia a todos la actualizacion de movimiento, que haga
+     * un thread para cada uno y no un for enviando de uno en uno, despues que 
+     * si 5 jugadores envian al server su nueva posicion, que el server en vez 
+     * de enviar a cada uno de los otros 5 datagramas con la posicion de cada 
+     * uno, envie uno solo con las 5 actualizaciones
+     * 
+    */
+
+    // que no se pueda salir de las paredes
+    // chat deslizable
+    // decorar un poco todo
+    // F11 pantalla completa
+
+    // timeout mensjes que tengas que responder
 
     private void Awake() {
         if(instance != null && instance != this) {
@@ -48,58 +87,106 @@ public class UDPTest : MonoBehaviour {
 
     void Start() {
         chatMenuGameObject.SetActive(false);
+        nameMenuGameObject.SetActive(true);
 
         users = new Dictionary<string, Player>();
 
         client = new UdpClient();
         client.EnableBroadcast = true;
 
-        server = new IPEndPoint(IPAddress.Parse("192.168.1.19"), 11000);
+        server = new IPEndPoint(IPAddress.Parse("192.168.100.2"), 11000);
 
-        player = new GameObject("localhost", typeof(Player)).GetComponent<Player>();
-        player.initPlayer();
+        client.Connect(server);
 
-        try {
-            client.Connect(server);
-
-            byte[] sendBytes = Encoding.ASCII.GetBytes("HOLA");
-            client.Send(sendBytes, sendBytes.Length);
-        } catch (Exception e) {
-            chatText.text += "<color=red>" + e.Message + "</color>\n";
-        }
-
-        StartCoroutine(getResponse());
-
-        sendButton.onClick.AddListener(delegate { onSend(sendText.text); sendText.text = ""; });
+        sendButton.onClick.AddListener(delegate { if (sendText.text.Length > 0) 
+            { onSend(sendText.text.Replace(";", "<pc>")); sendText.text = ""; } });
         openChatButton.onClick.AddListener(delegate { chatMenuGameObject.SetActive(true); });
         closeChatButton.onClick.AddListener(delegate { chatMenuGameObject.SetActive(false); });
         exitButton.onClick.AddListener(delegate { Application.Quit(); });
+
+        confirmNameButton.onClick.AddListener(delegate { 
+            if (nameField.text.Length > 0 && !nameField.text.Contains(";")) {
+                myName = nameField.text;
+
+                player = new GameObject("localhost", typeof(Player)).GetComponent<Player>();
+                player.initPlayer(myName, true);
+
+                try {
+                    byte[] sendBytes = Encoding.ASCII.GetBytes("HOLA" + myName);
+                    client.Send(sendBytes, sendBytes.Length);
+                } catch (Exception e) {
+                    chatText.text += "<color=red>" + e.Message + "</color>\n";
+                }
+
+                StartCoroutine(getResponse());
+
+                nameMenuGameObject.SetActive(false);
+            }
+        });
     }
 
+    private Vector2Int rez;
+    public void toggleFullScreen() {
+        FullScreenMode mode;
+        if (Screen.fullScreenMode == FullScreenMode.Windowed) {
+            rez.y = Screen.height;
+            rez.x = Screen.width;
+
+            mode = FullScreenMode.FullScreenWindow;
+            Screen.SetResolution(Screen.currentResolution.width, Screen.currentResolution.height, mode);
+        } else {
+            mode = FullScreenMode.Windowed;
+            Screen.SetResolution(rez.x, rez.y, mode);
+        }
+    }
+
+    private int waitFrames;
     private void FixedUpdate() {
-        Vector3 position = player.transform.localPosition;
-        if (Input.GetKey(KeyCode.W)) {
-            position.y += 5;
-        }
-        if (Input.GetKey(KeyCode.D)) {
-            position.x += 5;
-        }
-        if (Input.GetKey(KeyCode.S)) {
-            position.y -= 5;
-        }
-        if (Input.GetKey(KeyCode.A)) {
-            position.x -= 5;
-        }
-        if (position != player.transform.localPosition) {
-            player.transform.localPosition = position;
-            onMove(position.x + ";" + position.y);
+        waitFrames++;
+
+        if (Input.GetKey(KeyCode.F11)) 
+            toggleFullScreen();
+
+        if (player != null) {
+            Vector3 position = player.transform.localPosition;
+            Vector3 size = player.GetComponent<RectTransform>().sizeDelta;
+
+            if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow) || upButton.isPressed) {
+                upButton.GetComponent<Image>().color = upButton.GetComponent<Button>().colors.pressedColor;
+                if(position.y + 5 <= 1080/2 - size.y) position.y += 5;
+            } else upButton.GetComponent<Image>().color = upButton.GetComponent<Button>().colors.normalColor;
+
+            if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow) || rightButton.isPressed) {
+                rightButton.GetComponent<Image>().color = upButton.GetComponent<Button>().colors.pressedColor;
+                if (position.x + 5 <= 1920/2 - size.x) position.x += 5;
+            } else rightButton.GetComponent<Image>().color = upButton.GetComponent<Button>().colors.normalColor;
+
+            if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow) || downButton.isPressed) {
+                downButton.GetComponent<Image>().color = upButton.GetComponent<Button>().colors.pressedColor;
+                if (position.y - 5 >= -1080/2 + size.y) position.y -= 5;
+            } else downButton.GetComponent<Image>().color = upButton.GetComponent<Button>().colors.normalColor;
+
+            if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow) || leftButton.isPressed) {
+                leftButton.GetComponent<Image>().color = upButton.GetComponent<Button>().colors.pressedColor;
+                if (position.x - 5 >= -1920/2 + size.x) position.x -= 5;
+            } else leftButton.GetComponent<Image>().color = upButton.GetComponent<Button>().colors.normalColor;
+
+            if (position != player.transform.localPosition) {
+                player.transform.localPosition = position;
+                //
+                if (waitFrames >= FPU) { // 50 = 1 second, 5 = 0.1ms
+                    waitFrames = 0;
+                    onMove(position.x + ";" + position.y);
+                }
+                //
+            }
         }
     }
 
     private void onSend(string text) {
-        chatText.text += text + "\n";
+        chatText.text += "<color=blue>" + player.getName() + "</color> - " + text + "\n";
 
-        byte[] sendBytes = Encoding.ASCII.GetBytes("CHAT" + text);
+        byte[] sendBytes = Encoding.ASCII.GetBytes("CHAT " + text);
 
         client.Send(sendBytes, sendBytes.Length);
     }
@@ -117,20 +204,25 @@ public class UDPTest : MonoBehaviour {
                 string text = Encoding.ASCII.GetString(receiveBytes);
 
                 if (text.StartsWith("CHAT")) {
-                    string[] data = text.Substring(4).Split('@');
-                    chatText.text += data[1] + " => " + data[0];
+                    string key = text.Substring(5).Split(' ')[0];
+                    string message = text.Substring(5 + key.Length + 1); // "CHAT "=5 + KEY + "=1
+
+                    chatText.text += "<color=green>" + users[key].getName() + "</color> - " + message.Replace("<pc>", ";") + "\n";
                 } else if(text.StartsWith("GAME")) { // FORMAT: GAMEx;y@key
                     string[] data = text.Substring(4).Split('@');
                     string[] pos = data[0].Split(';');
                     users[data[1]].updatePosition(new Vector2(int.Parse(pos[0]), int.Parse(pos[1])));
                 } else if (text.StartsWith("ON")) {
-                    string info = text.Substring(2);
+                    string key = text.Substring(3).Split(' ')[0];
+                    string name = text.Substring(3 + key.Length + 1); // "ON "=3 + KEY + " "=1
+                    // name tiene que ser data
                     onlineUsers++;
                     
-                    Player newPlayer = new GameObject(info, typeof(Player)).GetComponent<Player>();
-                    newPlayer.initPlayer();
-                    users.Add(info, newPlayer);
+                    Player newPlayer = new GameObject(name, typeof(Player)).GetComponent<Player>();
+                    newPlayer.initPlayer(name);
+                    users.Add(key, newPlayer);
 
+                    chatText.text += "<color=green>" + users[key].getName() + "</color> - " + " joined the server" + "\n";
                     updateInfo();
                 } else if (text.StartsWith("OFF")) {
                     string key = text.Substring(3);
@@ -139,20 +231,35 @@ public class UDPTest : MonoBehaviour {
                     Destroy(users[key].gameObject);
                     users.Remove(key);
 
+                    chatText.text += "<color=green>" + users[key].getName() + "</color> - " + " left the server" + "\n";
                     updateInfo();
                 } else if (text.StartsWith("INFO")) {
-                    string info = text.Substring(4);
-                    string[] uss = info.Split('@');
+                    string[] lines = text.Substring(5).Split('\n');
 
-                    foreach(string user in uss) {
-                        string[] data = user.Split(';');
+                    bool chatPart = false;
+                    foreach (string line in lines) {
+                        if (!chatPart) { // Parte de usuarios
+                            if (!line.Equals(".")) { // Si no es un punto
+                                string key = line.Split(' ')[0];
+                                string[] data = line.Substring(key.Length + 1).Split(';');
+                                string name = data[0];
+                                int x = int.Parse(data[1]);
+                                int y = int.Parse(data[2]);
 
-                        Player newPlayer = new GameObject(info, typeof(Player)).GetComponent<Player>();
-                        newPlayer.initPlayer(new Vector2(int.Parse(data[1]), int.Parse(data[2])));
-                        users.Add(data[0], newPlayer);
+                                Player newPlayer = new GameObject(name, typeof(Player)).GetComponent<Player>();
+                                newPlayer.initPlayer(new Vector2(x, y), name);
+                                users.Add(key, newPlayer);
+
+                                onlineUsers++;
+                            } else chatPart = true; // Si es un punto cambia de parte
+                        } else if (!line.Equals(".")) { // Parte de chat, si no es el final, sigue
+                            string[] data = line.Split(';');
+                            string name = data[0];
+                            string message = data[1];
+
+                            chatText.text += "<color=green>" + name + "</color> - " + message.Replace("<pc>", ";") + "\n";
+                        }
                     }
-
-                    onlineUsers = uss.Length + 1;
 
                     updateInfo();
                 }
@@ -169,10 +276,18 @@ public class UDPTest : MonoBehaviour {
         byte[] sendBytes = Encoding.ASCII.GetBytes("ADIOS");
         client.Send(sendBytes, sendBytes.Length);
 
-        client.Dispose();
+        client.Close();
     }
 
     public static UDPTest getInstance() {
         return instance;
+    }
+
+    public static string compressData(string data) {
+        return data.Replace(" ", "<sp>");
+    }
+
+    public static string decompressData(string data) {
+        return data.Replace(" ", "<sp>");
     }
 }
