@@ -17,11 +17,14 @@ public class Player : MonoBehaviour {
 
     public void initPlayer(Vector2 position, string playerName) {
         initPlayer(playerName);
-        gameObject.transform.position = position;
+
+        newPosition = position;
+        gameObject.transform.localPosition = position;
     }
 
     public void initPlayer(string playerName, bool isRealPlayer) {
         this.isRealPlayer = isRealPlayer;
+
         initPlayer(playerName);
     }
 
@@ -67,9 +70,10 @@ public class Player : MonoBehaviour {
                 gameObject.transform.localPosition += difference / UDPTest.FPU;
 
                 if (totalFrames == UDPTest.FPU) {
-                    Debug.Log("actualizado");
-                    gameObject.transform.localPosition = newPosition;
                     totalFrames = 0;
+
+                    gameObject.transform.localPosition = newPosition;
+                    difference = Vector3.zero;
                 }
             }
         }
@@ -77,11 +81,12 @@ public class Player : MonoBehaviour {
 
     public void updatePosition(Vector2 position) {
         //gameObject.transform.localPosition = position; para insta TP
+        Debug.Log("NEW POSITION:" + position);
         newPosition = position;
         difference = newPosition - gameObject.transform.localPosition;
     }
 
     public string getName() {
-        return name;
+        return playerName;
     }
 }

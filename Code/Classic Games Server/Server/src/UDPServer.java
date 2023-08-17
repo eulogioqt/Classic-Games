@@ -1,17 +1,17 @@
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class UDPServer {
 	
@@ -29,6 +29,7 @@ public class UDPServer {
 	
 	private static Map<String, User> users;
 	private static List<ChatMessage> chat;
+	// reemplazar por un bojeto propio que redefina el add del list con un booleano de updated
 	
 	private static DatagramSocket initSocket(int puerto) {
 		DatagramSocket s = null;
@@ -54,9 +55,53 @@ public class UDPServer {
 		return sendTo.values();
 	}
 	
+	private static void saveTimer() {
+		Thread timer = new Thread() {
+			@Override
+			public void run() {
+				while(true) {
+					try {
+						Thread.sleep(10000);
+						
+						saveChat();
+						System.out.println("- Chat guardado");
+					} catch (InterruptedException | IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		};
+		
+		timer.start();
+	}
+	
+	private static void saveChat() throws IOException {
+		FileOutputStream fos = new FileOutputStream("chat.txt");
+		ObjectOutputStream oos = new ObjectOutputStream(fos);
+		oos.writeObject(chat);
+		oos.close();
+	}
+	
+	@SuppressWarnings("unchecked")
+	private static void loadChat () {
+		try {
+			FileInputStream fis = new FileInputStream("chat.txt");
+			ObjectInputStream ois = new ObjectInputStream(fis);
+			chat = (ArrayList<ChatMessage>) ois.readObject();
+			ois.close();
+		} catch (IOException | ClassNotFoundException e) {
+			System.err.println("No se ha encontrado historial de chat");
+		}
+		
+		if(chat == null)
+			chat = new ArrayList<>();
+	}
+	
 	public static void main(String[] args) throws IOException {
+		loadChat();
+		saveTimer();
+		
 		users = new HashMap<>();
-		chat = new ArrayList<>();
 		
 		DatagramSocket s = initSocket(11000);
 
@@ -94,18 +139,18 @@ public class UDPServer {
 				
 				s.send(createDatagram(INFO, users.get(key)));
 				
-				chat.add(new ChatMessage(users.get(key).getName() ," joined the server"));
+				chat.add(new ChatMessage(users.get(key).getName() ,"joined the server"));
 				System.out.println("- Nuevo usuario conectado: " + dp.getAddress() + ":" + dp.getPort() + " - Online: " + users.size());
 			} else if (texto.startsWith("ADIOS")) {
+				chat.add(new ChatMessage(users.get(key).getName() ,"left the server"));
 				users.remove(key);
 				
 				String OFF = "OFF" + key;
 				for(User user : getRestUsers(key))
 					s.send(createDatagram(OFF, user));
-				
-				chat.add(new ChatMessage(users.get(key).getName() ," left the server"));
+
 				System.out.println("- Usuario se desconecto: " + dp.getAddress() + ":" + dp.getPort() + " - Online: " + users.size());
-			} if (texto.startsWith("GAME")) {
+			} else if (texto.startsWith("GAME")) {
 				System.out.println("Mensaje " + texto + " (recibido desde: " + dp.getAddress() + ":" + dp.getPort() + ")");
 				
 				String data[] = texto.substring(4).split(";");
@@ -117,7 +162,7 @@ public class UDPServer {
 					s.send(createDatagram(texto, user));
 				
 				System.out.println("- Enviando a todos los usuarios");
-			} else if (texto.startsWith("CHAT") || texto.startsWith("GAME")){
+			} else if (texto.startsWith("CHAT")){
 				System.out.println("Mensaje " + texto + " (recibido desde: " + dp.getAddress() + ":" + dp.getPort() + ")");
 
 				chat.add(new ChatMessage(users.get(key).getName(), texto.substring(5)));

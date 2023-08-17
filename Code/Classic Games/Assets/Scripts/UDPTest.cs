@@ -23,8 +23,10 @@ public class UDPTest : MonoBehaviour {
     public Button closeChatButton;
     public Button openChatButton;
 
+    public Text positionText;
+
     public Text onlineText;
-    private int onlineUsers = 1;
+    private int onlineUsers;
     private string myName;
 
     private Dictionary<string, Player> users;
@@ -48,7 +50,7 @@ public class UDPTest : MonoBehaviour {
     // PORQUE SI MANDO EN BROADCST NO ME PUEDEN RESPONDER WTF ESO NO LO ENTIENDE NI DON GABRIEL LUQUE
     private static UDPTest instance;
 
-    public static int FPU = 5; // Frames Per Update
+    public static int FPU = 10; // Frames Per Update
 
     // ESTRUCTURAR BIEN EL CODIGO Y HACER QUE PUEDAS PERSONALIZAR
     // TU CUADRADO CON COLORES SKINS Y DEMAS
@@ -69,11 +71,16 @@ public class UDPTest : MonoBehaviour {
      * 
     */
 
+    // MIRAR BUGS Y F11 SUPER BUG
+
     // decorar un poco todo - version 6
     // timeout mensjes que tengas que responder - version 6
     // guardar chat - version 6
 
     // version 9000 cuentas
+
+    // AÑADIR SEGURIDAD PARA CONECTARSE Y DESCONECTARSE ASEGURARSE DE QUE LLEGUE EL MENSAJE
+    // RESPONDIENDO Y DEMAS
 
     private void Awake() {
         if(instance != null && instance != this) {
@@ -109,6 +116,10 @@ public class UDPTest : MonoBehaviour {
                 player = new GameObject("localhost", typeof(Player)).GetComponent<Player>();
                 player.initPlayer(myName, true);
 
+                onlineUsers = 1;
+
+                // hcer funcion para el chat para decorarlo y me polto bonito
+                // uno que sea addmessage o algo asi ya q se añaden mensajes de muchos sitios
                 try {
                     byte[] sendBytes = Encoding.ASCII.GetBytes("HOLA" + myName);
                     client.Send(sendBytes, sendBytes.Length);
@@ -139,15 +150,17 @@ public class UDPTest : MonoBehaviour {
     }
 
     private int waitFrames;
+    private Vector3 lastSentPosition;
     private void FixedUpdate() {
         waitFrames++;
 
-        if (Input.GetKey(KeyCode.F11)) 
+        if (Input.GetKeyDown(KeyCode.F11)) 
             toggleFullScreen();
 
         if (player != null) {
             Vector3 position = player.transform.localPosition;
             Vector3 size = player.GetComponent<RectTransform>().sizeDelta;
+            positionText.text = position.x + ", " + position.y;
 
             if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow) || upButton.isPressed) {
                 upButton.GetComponent<Image>().color = upButton.GetComponent<Button>().colors.pressedColor;
@@ -169,20 +182,24 @@ public class UDPTest : MonoBehaviour {
                 if (position.x - 5 >= -1920/2 + size.x) position.x -= 5;
             } else leftButton.GetComponent<Image>().color = upButton.GetComponent<Button>().colors.normalColor;
 
-            if (position != player.transform.localPosition) {
+            if (position != player.transform.localPosition) // Actualizar localmente fluidamente
                 player.transform.localPosition = position;
-                //
-                if (waitFrames >= FPU) { // 50 = 1 second, 5 = 0.1ms
-                    waitFrames = 0;
-                    onMove(position.x + ";" + position.y);
-                }
-                //
+
+            // Para que no pase que se actualice la posicion localmente, pero no se envie ya que hay que esperar
+            // cada FPU frames, entonces lo que hacemos es llevar la ultima posicion enviada.
+
+            // Si ha pasado el tiempo necesario y la ultima posicion enviada no es la actual:
+            if (waitFrames >= FPU && lastSentPosition != position) {
+                lastSentPosition = position;
+                Debug.Log("ultima posicion enviada: " + lastSentPosition);
+                waitFrames = 0;
+                onMove(position.x + ";" + position.y);
             }
         }
     }
 
     private void onSend(string text) {
-        chatText.text += "<color=blue>" + player.getName() + "</color> - " + text + "\n";
+        chatText.text += "<color=blue>" + player.getName() + "</color> - " + text.Replace("<pc>", ";") + "\n";
 
         byte[] sendBytes = Encoding.ASCII.GetBytes("CHAT " + text);
 
@@ -220,16 +237,16 @@ public class UDPTest : MonoBehaviour {
                     newPlayer.initPlayer(name);
                     users.Add(key, newPlayer);
 
-                    chatText.text += "<color=green>" + users[key].getName() + "</color> - " + " joined the server" + "\n";
+                    chatText.text += "<color=green>" + users[key].getName() + "</color> - " + "joined the server" + "\n";
                     updateInfo();
                 } else if (text.StartsWith("OFF")) {
                     string key = text.Substring(3);
                     onlineUsers--;
 
                     Destroy(users[key].gameObject);
+                    chatText.text += "<color=green>" + users[key].getName() + "</color> - " + "left the server" + "\n";
                     users.Remove(key);
 
-                    chatText.text += "<color=green>" + users[key].getName() + "</color> - " + " left the server" + "\n";
                     updateInfo();
                 } else if (text.StartsWith("INFO")) {
                     string[] lines = text.Substring(5).Split('\n');
@@ -259,6 +276,7 @@ public class UDPTest : MonoBehaviour {
                         }
                     }
 
+                    chatText.text += "<color=blue>" + player.getName() + "</color> - " + "joined the server" + "\n";
                     updateInfo();
                 }
             }
