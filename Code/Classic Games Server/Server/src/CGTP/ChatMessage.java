@@ -1,3 +1,5 @@
+package CGTP;
+
 import java.io.Serializable;
 
 public class ChatMessage implements Serializable {

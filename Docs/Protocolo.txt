@@ -73,7 +73,12 @@ CHAT mensaje (Cliente -> Servidor) => El cliente envia un mensaje en el chat.
 CHAT key mensaje (Servidor -> Cliente) => El servidor difunde un mensaje enviado por un cliente al chat, con su key
 para que el resto puedan identificarlo.
 
-MOV pos (Cliente -> Servidor) => El cliente envia una actualizacion de movimiento
+MOVE pos (Cliente -> Servidor) => El cliente envia una actualizacion de movimiento
 
-MOV key pos (Servidor -> Cliente) => El servidor difunde una actualizacion de movimiento, con su key para que
+MOVE key pos (Servidor -> Cliente) => El servidor difunde una actualizacion de movimiento, con su key para que
 el resto puedan identificarlo
+
+TIMEOUT (Servidor -> Cliente) => Lo envia el servidor periodicamente a todos los usuarios conectados, una vez enviados,
+estos tendran que responder con un mensaje ALIVE para saber que siguen conectados. Los que no lo hagan, seran desconectados.
+
+ALIVE (Cliente -> Servidor) => Lo envia el cliente para confirmar que sigue ahi y no se ha desconectado en respuesta a un TIMEOUT.

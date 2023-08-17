@@ -1,22 +1,18 @@
+package CGTP;
 import java.net.InetAddress;
 
 public class User {
-	private InetAddress address;
+	private InetAddress address; // crear key
 	private int port;
 	
-	private String name;
-	private int x;
-	private int y;
+	private UserData data;
+	private PlayerData playerData;
 	
-	public User(InetAddress address, int port, String name) {
-		this.name = name;
+	public User(InetAddress address, int port, UserData data, PlayerData playerData) {
 		this.address = address;
 		this.port = port;
-	}
-	
-	public void setPosition(int x, int y) {
-		this.x = x;
-		this.y = y;
+		this.data = data;
+		this.playerData = playerData;
 	}
 	
 	public InetAddress getAddress() {
@@ -27,21 +23,21 @@ public class User {
 		return port;
 	}
 	
-	public String getName() {
-		return name;
+	public String getKey() {
+		return address + ":" + port;
+	}
+
+	public UserData getData() {
+		return data;
 	}
 	
-	public int getX() {
-		return x;
+	public PlayerData getPlayerData() {
+		return playerData;
 	}
-	
-	public int getY() {
-		return y;
-	}
-	
+
 	@Override
 	public String toString() {
-		return "User(" + name + ", " + address.toString() + ", " + port + ")";
+		return data + ";" + playerData;
 	}
 	
 	@Override
