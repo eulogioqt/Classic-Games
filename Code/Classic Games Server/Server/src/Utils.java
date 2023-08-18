@@ -5,7 +5,6 @@ import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import CGTP.ChatMessage;
 import CGTP.User;
 import CGTP.COMMANDS.CHAT;
 import CGTP.COMMANDS.INFO;
@@ -20,7 +19,7 @@ public class Utils {
 		try {
 			s = new DatagramSocket(puerto);
 		} catch (SocketException e) {
-			System.err.println(e.getMessage());
+			ServerConsole.sendMessage(ChatColor.RED + e.getMessage());
 		}
 		return s;
 	}
@@ -33,13 +32,13 @@ public class Utils {
 		return ds;
 	}
 	
-	public static void sendCHAT(User sender, String message, List<User> restUsers) throws IOException {
-		for(User user : restUsers)
-			UDPServer.send(Utils.createDatagram(CHAT.getMessage(sender.getKey(), message), user));
+	public static void sendCHAT(String message, List<User> users) throws IOException {
+		for(User user : users)
+			UDPServer.send(Utils.createDatagram(CHAT.getMessage(message), user));
 	}
 	
-	public static void sendINFO(User sendTo, List<User> restUsers, List<ChatMessage> chat) throws IOException {
-		UDPServer.send(Utils.createDatagram(INFO.getMessage(sendTo.getKey(), restUsers, chat), sendTo)); // send INFO
+	public static void sendINFO(User sendTo, List<User> restUsers, List<String> chat) throws IOException {
+		UDPServer.send(Utils.createDatagram(INFO.getMessage(sendTo.getKey(), restUsers, chat), sendTo));
 	}
 	
 	public static void sendMOVE(User movedUser, int x, int y, List<User> restUsers) throws IOException {

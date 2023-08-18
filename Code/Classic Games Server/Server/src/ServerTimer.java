@@ -2,7 +2,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import CGTP.ChatMessage;
 import CGTP.User;
 
 public class ServerTimer extends Thread {
@@ -17,12 +16,14 @@ public class ServerTimer extends Thread {
 
 		for(String key : UDPServer.timeoutList) {
 			User offUser = UDPServer.users.get(key);
-			List<User> restUsers = UDPServer.getRestUsers(key);
-			
-			Utils.sendOFF(offUser, restUsers);
-			
-			UDPServer.chat.add(new ChatMessage(offUser.getData().getName() ,"left the server"));
-			UDPServer.users.remove(key);
+			if(offUser != null) { // Por si se ha desconectado
+				List<User> restUsers = UDPServer.getRestUsers(key);
+				
+				Utils.sendOFF(offUser, restUsers);
+				
+				ServerChat.broadcastMessage("&e" + offUser.getData().getName() + " left the server");
+				UDPServer.users.remove(key);
+			}
 		}
 	}
 	
@@ -32,7 +33,7 @@ public class ServerTimer extends Thread {
 			try {
 				Thread.sleep(20000);
 				
-				UDPServer.saveChat();
+				ServerChat.saveChat();
 				sendTimeouts();
 			} catch (InterruptedException | IOException e) {
 				e.printStackTrace();

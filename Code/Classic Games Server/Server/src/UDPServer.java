@@ -1,8 +1,4 @@
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.util.ArrayList;
@@ -10,7 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import CGTP.ChatMessage;
+import org.fusesource.jansi.AnsiConsole;
+
 import CGTP.CommandType;
 import CGTP.User;
 import CGTP.COMMANDS.CHAT;
@@ -24,18 +21,10 @@ public class UDPServer {
 	// DE ESTA FORMA, SE MEJORA EL RENDIMIENTO
 	// TAMBIEN QUE CUANDO VAYA A ENVIAR UN MENSAJE
 	
-	// CADA CIERTO TIEMPO, ENVIAR UN MENSAJE AL USUARIO Y SI NO ESTA, DESCONECTARLO
-	
 	// QUE EL SERVIDOR RESPONDA CUANDO SE CONECTA ALGUIEN, PROTOCOLO ETC
 
-	// GUARDAR HISTORIAL DE CHAT
-	
-	// USUARIOS
-	
-	public static Map<String, User> users;
-	public static List<ChatMessage> chat;
-	// reemplazar por un bojeto propio que redefina el add del list con un booleano de updated
-	public static List<String> timeoutList;
+	public static Map<String, User> users = new HashMap<>();
+	public static List<String> timeoutList; // reemplazar por un bojeto propio que redefina el add del list con un booleano de updated
 	
 	private static DatagramSocket s;
 	
@@ -44,40 +33,29 @@ public class UDPServer {
 		sendTo.remove(key);
 		return new ArrayList<>(sendTo.values());
 	}
-	
-	public static void saveChat() throws IOException {
-		FileOutputStream fos = new FileOutputStream("chat.txt");
-		ObjectOutputStream oos = new ObjectOutputStream(fos);
-		oos.writeObject(chat);
-		oos.close();
+
+	private static void onEnable() { // &
+		AnsiConsole.systemInstall();
 		
-		System.out.println("- Chat guardado");
-	}
-	
-	@SuppressWarnings("unchecked")
-	public static void loadChat () {
-		try {
-			FileInputStream fis = new FileInputStream("chat.txt");
-			ObjectInputStream ois = new ObjectInputStream(fis);
-			chat = (ArrayList<ChatMessage>) ois.readObject();
-			ois.close();
-		} catch (IOException | ClassNotFoundException e) {
-			System.err.println("No se ha encontrado historial de chat.");
-		}
-		
-		if(chat == null)
-			chat = new ArrayList<>();
-	}
-	
-	public static void main(String[] args) throws IOException {
-		loadChat();
+		ServerChat.loadChat();
+		ServerConsole.sendMessage(ChatColor.DARK_GREEN + "Cargando chat...");
 		
 		ServerTimer st = new ServerTimer();
 		st.start();
+		ServerConsole.sendMessage(ChatColor.DARK_GREEN + "Activando timer...");
 		
-		users = new HashMap<>();
 		s = Utils.initSocket(11000);
-
+		ServerConsole.sendMessage(ChatColor.DARK_GREEN + "Inicializando socket...");
+		
+		ServerConsole sc = new ServerConsole();
+		sc.start();
+		ServerConsole.sendMessage("Colores: &11&22&33&44&55&66&77&88&99&00&aa&bb&cc&dd&ee&ff");
+		ServerConsole.sendMessage(ChatColor.GREEN + "Servidor inicializado correctamente");
+	}
+	
+	public static void main(String[] args) throws IOException {
+		onEnable();
+		
 		byte[] buffer;
 		while (true) {
 			buffer = new byte[800];
@@ -86,6 +64,9 @@ public class UDPServer {
 			s.receive(dp);
 
 			COMMAND cmd = new COMMAND(dp);
+			if(cmd.getType() != CommandType.HOLA && users.get(cmd.getSenderKey()) == null) // por si envia mensaje alguien que no esta conectado
+				continue;
+			
 			if(cmd.getType() == CommandType.HOLA) {
 				HOLA msg = HOLA.process(cmd.getCommand());
 				
@@ -95,16 +76,16 @@ public class UDPServer {
 				users.put(cmd.getSenderKey(), newUser);
 				
 				Utils.sendON(newUser, restUsers);
-				Utils.sendINFO(newUser, restUsers, chat);
+				Utils.sendINFO(newUser, restUsers, ServerChat.getChat());
 				
-				chat.add(new ChatMessage(newUser.getData().getName() ,"joined the server"));
+				ServerChat.broadcastMessage("&e" + newUser.getData().getName()  + " joined the game.");
 			} else if (cmd.getType() == CommandType.ADIOS) {
 				User offUser = users.get(cmd.getSenderKey());
 				List<User> restUsers = getRestUsers(cmd.getSenderKey());
 				
 				Utils.sendOFF(offUser, restUsers);
 				
-				chat.add(new ChatMessage(offUser.getData().getName() ,"left the server"));
+				ServerChat.broadcastMessage("&e" + offUser.getData().getName() + " left the game.");
 				users.remove(cmd.getSenderKey());
 			} else if (cmd.getType() == CommandType.MOVE) {
 				MOVE msg = MOVE.process(cmd.getCommand());
@@ -115,17 +96,15 @@ public class UDPServer {
 				movedUser.getPlayerData().setPosition(msg.getX(), msg.getY());
 				
 				Utils.sendMOVE(movedUser, msg.getX(), msg.getY(), restUsers);
-			} else if (cmd.getType() == CommandType.CHAT){
+			} else if (cmd.getType() == CommandType.CHAT){ // Cuando haya cuentas, cambiar el sistema de envio a
+				// chatmessage guarda el key y el mensaje y como en minecraft el chat, copiarlo literalmente
 				CHAT msg = CHAT.process(cmd.getCommand());
-				
-				User movedUser = users.get(cmd.getSenderKey());
-				List<User> restUsers = getRestUsers(cmd.getSenderKey());
-				
-				Utils.sendCHAT(movedUser, msg.getMessage(), restUsers);
-				
-				chat.add(new ChatMessage(users.get(cmd.getSenderKey()).getData().getName(), msg.getMessage()));
+
+				ServerChat.broadcastMessage("<" + users.get(cmd.getSenderKey()).getData().getName() + "> " + msg.getMessage());
 			} else if (cmd.getType() == CommandType.ALIVE) {
 				timeoutList.remove(cmd.getSenderKey());
+			} else if (cmd.getType() == CommandType.UNKNOWN) {
+				ServerConsole.sendMessage(ChatColor.RED + "Algo salio mal: " + cmd.getCommand());
 			}
 		}
 	}

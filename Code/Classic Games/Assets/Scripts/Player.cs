@@ -84,8 +84,6 @@ public class Player : MonoBehaviour {
     }
 
     public void updatePosition(Vector2 position) {
-        //gameObject.transform.localPosition = position; para insta TP
-        Debug.Log("NEW POSITION:" + position);
         newPosition = position;
         difference = newPosition - gameObject.transform.localPosition;
     }

@@ -15,7 +15,7 @@ public class CHAT {
 		return new CHAT(message.substring(5));
 	}
 	
-	public static String getMessage(String senderKey, String message) {
-		return "CHAT " + senderKey + " " + message;
+	public static String getMessage(String message) {
+		return "CHAT " + message;
 	}
 }
