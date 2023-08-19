@@ -7,7 +7,7 @@ using System.Collections;
 using System;
 using System.Collections.Generic;
 
-public class UDPTest : MonoBehaviour {
+public class UDPClient : MonoBehaviour {
 
     // Started by @eulogioqt on 13/08/2023
 
@@ -53,7 +53,7 @@ public class UDPTest : MonoBehaviour {
     //on application quit and why cant answer to broadcast udp
     // numero de gente online
     // PORQUE SI MANDO EN BROADCST NO ME PUEDEN RESPONDER WTF ESO NO LO ENTIENDE NI DON GABRIEL LUQUE
-    private static UDPTest instance;
+    private static UDPClient instance;
 
     public static int FPU = 10; // Frames Per Update
 
@@ -81,8 +81,8 @@ public class UDPTest : MonoBehaviour {
     // MIRAR BUGS Y F11 SUPER BUG
 
     // hacer funciones para cada tipo de mensaje
-    // refactorizar - version 7
-    // decorar un poco todo - version 7
+    // refactorizar - version 8
+    // decorar un poco todo - version 8
 
     // version 8 - que todo se ejecute en un thread en el sv y que el main pueda escribir y poner comandos
     // y que se cierre el servefr con un comando que desconecte a los demas y to eso y se guasrde el chat
@@ -96,6 +96,9 @@ public class UDPTest : MonoBehaviour {
 
     // AÑADIR SEGURIDAD PARA CONECTARSE Y DESCONECTARSE ASEGURARSE DE QUE LLEGUE EL MENSAJE
     // RESPONDIENDO Y DEMAS
+
+    public InputField ipInputField;
+    public InputField portInputField;
 
     private void Awake() {
         if(instance != null && instance != this) {
@@ -113,11 +116,6 @@ public class UDPTest : MonoBehaviour {
         users = new Dictionary<string, Player>();
 
         client = new UdpClient();
-        client.EnableBroadcast = true;
-
-        server = new IPEndPoint(IPAddress.Parse("192.168.100.2"), 11000);
-
-        client.Connect(server);
 
         sendButton.onClick.AddListener(delegate { sendChat(); });
         openChatButton.onClick.AddListener(delegate { openChat(); });
@@ -130,6 +128,10 @@ public class UDPTest : MonoBehaviour {
 
                 player = new GameObject("localhost", typeof(Player)).GetComponent<Player>();
                 player.initPlayer(myName, true);
+
+                server = new IPEndPoint(IPAddress.Parse(ipInputField.text), int.Parse(portInputField.text));
+
+                client.Connect(server);
 
                 onlineUsers = 1;
 
@@ -169,7 +171,6 @@ public class UDPTest : MonoBehaviour {
 
         isChatOpen = true;
         chatMenuGameObject.SetActive(true);
-        sendText.Select();
     }
 
     private void closeChat() {
@@ -211,9 +212,6 @@ public class UDPTest : MonoBehaviour {
 
         if (chatText.text.StartsWith("\n"))
             chatText.text = chatText.text.Substring(1);
-
-        if (isChatOpen && !sendText.isFocused && Input.anyKey)
-            sendText.Select();
 
         if (Input.GetKeyDown(KeyCode.F11))
             toggleFullScreen();
@@ -341,9 +339,9 @@ public class UDPTest : MonoBehaviour {
     public void addMessage(string message) {
         chatText.text += "\n" + transformToGameColors(message);
 
-        chatText.GetComponent<RectTransform>().sizeDelta = new Vector2(1275, chatText.preferredHeight + 10);
+        chatText.GetComponent<RectTransform>().sizeDelta = new Vector2(1275 * 4, chatText.preferredHeight + 10);
 
-        backgroundChatGameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(1300, chatText.GetComponent<RectTransform>().sizeDelta.y);
+        backgroundChatGameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(1300, chatText.GetComponent<RectTransform>().sizeDelta.y / 4);
         float y = -380 + backgroundChatGameObject.GetComponent<RectTransform>().sizeDelta.y;
        
         closeChatButton.transform.localPosition = new Vector2(340, y > 380 ? 380 : y);
@@ -440,7 +438,7 @@ public class UDPTest : MonoBehaviour {
         client.Close();
     }
 
-    public static UDPTest getInstance() {
+    public static UDPClient getInstance() {
         return instance;
     }
 

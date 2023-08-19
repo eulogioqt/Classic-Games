@@ -1,6 +1,9 @@
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,10 +36,21 @@ public class UDPServer {
 		sendTo.remove(key);
 		return new ArrayList<>(sendTo.values());
 	}
+	// cuando llega un mensaje, guardo en un hashmao user, int, el systemcurrentmillis de cuando ha llegao el mensaje
+	// si cuando toque el timeout, ese systemcurrentmillis es mayor que 30 segundos con el actual, envia timeout y a los 10s
+	// vuelve a comprobar ese systemtimemillis, si es menor que antes, no pasa na
 
-	private static void onEnable() { // &
+	// cunado llega un mensaje ,guardar el systemcurrentseconds, si en algun momento el systemcurrentseconds con el catual se diferencia en 30
+	// envia un mensaje timeout al servidor, y este debera responder con alive, si pasados 10s el systemcurrentseconds sigue siendo el mismo que antes
+	// da de baja, si es menor, no pasa na
+	
+	// el servidor cuando dices hola tendra que responder con welcome, durante ese rato e cliente estara
+	// conectando
+	
+	// cuando el servidor mate a alguien le envie un mensje de shutdown para si llega a procesarlo vea que ha muerto
+	private static void onEnable() throws UnknownHostException, SocketException { // &
 		AnsiConsole.systemInstall();
-		
+
 		ServerChat.loadChat();
 		ServerConsole.sendMessage(ChatColor.DARK_GREEN + "Cargando chat...");
 		
@@ -49,8 +63,9 @@ public class UDPServer {
 		
 		ServerConsole sc = new ServerConsole();
 		sc.start();
+		
 		ServerConsole.sendMessage("Colores: &11&22&33&44&55&66&77&88&99&00&aa&bb&cc&dd&ee&ff");
-		ServerConsole.sendMessage(ChatColor.GREEN + "Servidor inicializado correctamente");
+		ServerConsole.sendMessage(ChatColor.GREEN + "Servidor inicializado correctamente en el puerto " + s.getLocalPort());
 	}
 	
 	public static void main(String[] args) throws IOException {

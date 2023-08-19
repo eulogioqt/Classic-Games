@@ -71,9 +71,9 @@ public class Player : MonoBehaviour {
             if (newPosition != gameObject.transform.localPosition) {
                 totalFrames++;
 
-                gameObject.transform.localPosition += difference / UDPTest.FPU;
+                gameObject.transform.localPosition += difference / UDPClient.FPU;
 
-                if (totalFrames == UDPTest.FPU) {
+                if (totalFrames == UDPClient.FPU) {
                     totalFrames = 0;
 
                     gameObject.transform.localPosition = newPosition;

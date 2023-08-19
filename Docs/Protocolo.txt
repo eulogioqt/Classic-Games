@@ -37,9 +37,9 @@ data = nombre;pos
 pos = x;y
 
 chat = 
-name1;type1;mensaje1
-name2;type2;mensaje2
-name3;type3;mensaje3
+mensaje1
+mensaje2
+mensaje3
 
 CGTP - Classic Games Transmission Protocol
 
@@ -70,7 +70,7 @@ Ademas envia el historial del chat.
 
 CHAT mensaje (Cliente -> Servidor) => El cliente envia un mensaje en el chat.
 
-CHAT key mensaje (Servidor -> Cliente) => El servidor difunde un mensaje enviado por un cliente al chat, con su key
+CHAT mensaje (Servidor -> Cliente) => El servidor difunde un mensaje enviado por un cliente al chat, con su key
 para que el resto puedan identificarlo.
 
 MOVE pos (Cliente -> Servidor) => El cliente envia una actualizacion de movimiento
