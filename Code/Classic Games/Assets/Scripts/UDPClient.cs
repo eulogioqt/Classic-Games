@@ -8,7 +8,6 @@ using System;
 using System.Collections.Generic;
 
 public class UDPClient : MonoBehaviour {
-
     // Started by @eulogioqt on 13/08/2023
 
     // TO-DO
@@ -48,12 +47,13 @@ public class UDPClient : MonoBehaviour {
     public GameObject messagesNotReadedGameObject;
     public Text messagesNotReadedText;
 
+    public Text serverErrorText;
+
     private UdpClient client;
     private IPEndPoint server;
     //on application quit and why cant answer to broadcast udp
     // numero de gente online
     // PORQUE SI MANDO EN BROADCST NO ME PUEDEN RESPONDER WTF ESO NO LO ENTIENDE NI DON GABRIEL LUQUE
-    private static UDPClient instance;
 
     public static int FPU = 10; // Frames Per Update
 
@@ -100,14 +100,6 @@ public class UDPClient : MonoBehaviour {
     public InputField ipInputField;
     public InputField portInputField;
 
-    private void Awake() {
-        if(instance != null && instance != this) {
-            Destroy(this);
-        } else {
-            instance = this;
-        }
-    }
-
     void Start() {
         messagesNotReadedGameObject.SetActive(false);
         chatMenuGameObject.SetActive(false);
@@ -125,6 +117,7 @@ public class UDPClient : MonoBehaviour {
         confirmNameButton.onClick.AddListener(delegate { 
             if (nameField.text.Length > 0 && !nameField.text.Contains(";")) {
                 myName = nameField.text;
+                serverErrorText.text = "";
 
                 player = new GameObject("localhost", typeof(Player)).GetComponent<Player>();
                 player.initPlayer(myName, true);
@@ -350,79 +343,64 @@ public class UDPClient : MonoBehaviour {
     private IEnumerator getResponse() {
         while (true) {
             if(client.Available > 0) {
-                byte[] receiveBytes = client.Receive(ref server);
-                string text = Encoding.ASCII.GetString(receiveBytes);
-                Debug.Log(text);
-                if (text.StartsWith("CHAT")) {
-                    string message = text.Substring(5);
+                COMMAND cmd = null;
+                try {
+                    cmd = new COMMAND(client.Receive(ref server)); Debug.Log(cmd.getCommand());
+                } catch (Exception e) {
+                    serverErrorText.text = e.Message;
+                    nameMenuGameObject.SetActive(true);
+                }
+
+                if (cmd.getType() == CommandType.CHAT) {
+                    CHAT msg = CHAT.process(cmd.getCommand());
 
                     updateNotReaded();
 
-                    addMessage(message);
-                } else if(text.StartsWith("MOVE")) {
-                    string key = text.Substring(5).Split(' ')[0];
-                    string[] data = text.Substring(5 + key.Length + 1).Split(';');
+                    addMessage(msg.getMessage());
+                } else if(cmd.getType() == CommandType.MOVE) {
+                    MOVE msg = MOVE.process(cmd.getCommand());
 
-                    int x = int.Parse(data[0]);
-                    int y = int.Parse(data[1]);
-
-                    users[key].updatePosition(new Vector2(x, y));
-                } else if (text.StartsWith("ON")) {
-                    string key = text.Substring(3).Split(' ')[0];
-                    string[] data = text.Substring(3 + key.Length + 1).Split(';'); // "ON "=3 + KEY + " "=1
-
-                    string playerName = data[0];
-                    int x = int.Parse(data[1]);
-                    int y = int.Parse(data[2]);
+                    users[msg.getKey()].updatePosition(new Vector2(msg.getX(), msg.getY()));
+                } else if (cmd.getType() == CommandType.ON) {
+                    ON msg = ON.process(cmd.getCommand());
 
                     onlineUsers++;
                     
-                    Player newPlayer = new GameObject(playerName, typeof(Player)).GetComponent<Player>();
-                    newPlayer.initPlayer(new Vector2(x, y), playerName);
-                    users.Add(key, newPlayer);
+                    Player newPlayer = new GameObject(msg.getData().getName(), typeof(Player)).GetComponent<Player>();
+                    newPlayer.initPlayer(
+                        new Vector2(msg.getPlayerData().getX(), 
+                        msg.getPlayerData().getY()), 
+                        msg.getData().getName());
+                    users.Add(msg.getKey(), newPlayer);
 
                     updateInfo();
-                } else if (text.StartsWith("OFF")) {
-                    string key = text.Substring(4);
+                } else if (cmd.getType() == CommandType.OFF) {
+                    OFF msg = OFF.process(cmd.getCommand());
+
                     onlineUsers--;
 
-                    Destroy(users[key].gameObject);
-                    users.Remove(key);
+                    Destroy(users[msg.getKey()].gameObject);
+                    users.Remove(msg.getKey());
 
                     updateInfo();
-                } else if (text.StartsWith("INFO")) {
-                    string[] lines = text.Substring(5).Split('\n');
+                } else if (cmd.getType() == CommandType.INFO) {
+                    INFO msg = INFO.process(cmd.getCommand());
 
-                    bool chatPart = false;
-                    foreach (string line in lines) {
-                        if (!chatPart) { // Parte de usuarios
-                            if (!line.Equals(".")) { // Si no es un punto
-                                string key = line.Split(' ')[0];
-                                string[] data = line.Substring(key.Length + 1).Split(';');
-                                string name = data[0];
-                                int x = int.Parse(data[1]);
-                                int y = int.Parse(data[2]);
-
-                                Player newPlayer = new GameObject(name, typeof(Player)).GetComponent<Player>();
-                                newPlayer.initPlayer(new Vector2(x, y), name);
-                                users.Add(key, newPlayer);
-
-                                onlineUsers++;
-                            } else chatPart = true; // Si es un punto cambia de parte
-                        } else if (!line.Equals(".")) { // Parte de chat, si no es el final, sigue
-                            string message = line;
-
-                            addMessage(message);
-                        }
-                    }
+                    users = msg.getUsers();
+                    onlineUsers = msg.getOnlineUsers();
+                    foreach (string line in msg.getChat())
+                        addMessage(line);
 
                     updateInfo();
-                } else if (text.StartsWith("TIMEOUT")) {
-                    byte[] sendBytes = Encoding.ASCII.GetBytes("ALIVE");
+                } else if (cmd.getType() == CommandType.TIMEOUT) {
+                    byte[] sendBytes = Encoding.ASCII.GetBytes(ALIVE.getMessage());
 
                     client.Send(sendBytes, sendBytes.Length);
+                } else {
+                    Debug.Log("Algo salio mal: " + cmd.getCommand());
                 }
             }
+
             yield return new WaitForSeconds(0);
         }
     }
@@ -432,21 +410,9 @@ public class UDPClient : MonoBehaviour {
     }
 
     private void OnApplicationQuit() {
-        byte[] sendBytes = Encoding.ASCII.GetBytes("ADIOS");
+        byte[] sendBytes = Encoding.ASCII.GetBytes(ADIOS.getMessage());
         client.Send(sendBytes, sendBytes.Length);
 
         client.Close();
-    }
-
-    public static UDPClient getInstance() {
-        return instance;
-    }
-
-    public static string compressData(string data) {
-        return data.Replace(" ", "<sp>");
-    }
-
-    public static string decompressData(string data) {
-        return data.Replace(" ", "<sp>");
     }
 }

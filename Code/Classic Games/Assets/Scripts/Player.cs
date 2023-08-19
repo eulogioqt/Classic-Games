@@ -84,6 +84,7 @@ public class Player : MonoBehaviour {
     }
 
     public void updatePosition(Vector2 position) {
+        totalFrames = 0;
         newPosition = position;
         difference = newPosition - gameObject.transform.localPosition;
     }

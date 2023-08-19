@@ -23,7 +23,7 @@ public class MOVE {
 	
 	public static MOVE process(string message) {
         string key = message.Substring(5).Split(" ")[0];
-        string[] pos = message.Substring(3 + key.Length + 1).Split(";");
+        string[] pos = message.Substring(5 + key.Length + 1).Split(";");
 
         return new MOVE(key, int.Parse(pos[0]), int.Parse(pos[1]));
 	}

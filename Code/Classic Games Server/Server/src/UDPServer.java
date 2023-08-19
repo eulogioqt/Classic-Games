@@ -1,7 +1,6 @@
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -48,6 +47,7 @@ public class UDPServer {
 	// conectando
 	
 	// cuando el servidor mate a alguien le envie un mensje de shutdown para si llega a procesarlo vea que ha muerto
+	
 	private static void onEnable() throws UnknownHostException, SocketException { // &
 		AnsiConsole.systemInstall();
 
@@ -118,7 +118,7 @@ public class UDPServer {
 				ServerChat.broadcastMessage("<" + users.get(cmd.getSenderKey()).getData().getName() + "> " + msg.getMessage());
 			} else if (cmd.getType() == CommandType.ALIVE) {
 				timeoutList.remove(cmd.getSenderKey());
-			} else if (cmd.getType() == CommandType.UNKNOWN) {
+			} else {
 				ServerConsole.sendMessage(ChatColor.RED + "Algo salio mal: " + cmd.getCommand());
 			}
 		}

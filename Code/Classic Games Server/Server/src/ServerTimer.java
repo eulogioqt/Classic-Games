@@ -34,7 +34,10 @@ public class ServerTimer extends Thread {
 				Thread.sleep(20000);
 				
 				ServerChat.saveChat();
-				sendTimeouts();
+				for(User user : UDPServer.users.values()) {
+					user.getAddress().isReachable(MAX_PRIORITY)
+				}
+				//sendTimeouts();
 			} catch (InterruptedException | IOException e) {
 				e.printStackTrace();
 			}
