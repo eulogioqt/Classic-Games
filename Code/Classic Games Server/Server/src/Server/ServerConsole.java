@@ -1,6 +1,8 @@
-import java.io.IOException;
+package Server;
 import java.time.LocalDateTime;
 import java.util.Scanner;
+
+import Server.Objects.ChatColor;
 
 public class ServerConsole extends Thread {
 	private enum ConsoleColor {
@@ -33,8 +35,6 @@ public class ServerConsole extends Thread {
 				String s = sc.nextLine();
 				ServerChat.broadcastMessage("[Server] " + s);
 			}
-		} catch (IOException e) {
-			e.printStackTrace();
 		}
 	}
 

@@ -1,6 +1,6 @@
 package CGTP.COMMANDS;
 
-import CGTP.User;
+import Server.Objects.User;
 
 public class ON {
 	public static String getMessage(User newOnUser) {

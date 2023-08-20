@@ -2,7 +2,7 @@ package CGTP.COMMANDS;
 
 import java.util.List;
 
-import CGTP.User;
+import Server.Objects.User;
 
 public class INFO {
 	public static String getMessage(String sendToKey, List<User> users, List<String> chat) {

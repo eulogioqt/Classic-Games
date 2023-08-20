@@ -1,8 +1,7 @@
+package Server.Objects;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -11,11 +10,13 @@ import java.util.Map;
 import org.fusesource.jansi.AnsiConsole;
 
 import CGTP.CommandType;
-import CGTP.User;
 import CGTP.COMMANDS.CHAT;
 import CGTP.COMMANDS.COMMAND;
 import CGTP.COMMANDS.HOLA;
 import CGTP.COMMANDS.MOVE;
+import Server.ServerChat;
+import Server.ServerConsole;
+import Server.Lobby.LobbyServer;
 
 public class UDPServer {
 	
@@ -48,28 +49,15 @@ public class UDPServer {
 	
 	// cuando el servidor mate a alguien le envie un mensje de shutdown para si llega a procesarlo vea que ha muerto
 	
-	private static void onEnable() throws UnknownHostException, SocketException { // &
+	
+	public static void main(String[] args) throws IOException {
 		AnsiConsole.systemInstall();
-
-		ServerChat.loadChat();
-		ServerConsole.sendMessage(ChatColor.DARK_GREEN + "Cargando chat...");
 		
-		ServerTimer st = new ServerTimer();
-		st.start();
-		ServerConsole.sendMessage(ChatColor.DARK_GREEN + "Activando timer...");
+		LobbyServer.onEnable();
 		
 		s = Utils.initSocket(11000);
 		ServerConsole.sendMessage(ChatColor.DARK_GREEN + "Inicializando socket...");
-		
-		ServerConsole sc = new ServerConsole();
-		sc.start();
-		
-		ServerConsole.sendMessage("Colores: &11&22&33&44&55&66&77&88&99&00&aa&bb&cc&dd&ee&ff");
 		ServerConsole.sendMessage(ChatColor.GREEN + "Servidor inicializado correctamente en el puerto " + s.getLocalPort());
-	}
-	
-	public static void main(String[] args) throws IOException {
-		onEnable();
 		
 		byte[] buffer;
 		while (true) {
@@ -84,38 +72,43 @@ public class UDPServer {
 			
 			if(cmd.getType() == CommandType.HOLA) {
 				HOLA msg = HOLA.process(cmd.getCommand());
+
+				User newUser = new User(cmd.getAddress(), cmd.getPort(), msg.getData());
+				Player player = new Player(msg.getX(), msg.getY(), newUser);
+				newUser.setPlayer(player);
 				
-				User newUser = new User(dp.getAddress(), dp.getPort(), msg.getData(), msg.getPlayerData());
 				List<User> restUsers = getRestUsers(cmd.getSenderKey());
 				
 				users.put(cmd.getSenderKey(), newUser);
 				
 				Utils.sendON(newUser, restUsers);
 				Utils.sendINFO(newUser, restUsers, ServerChat.getChat());
-				
-				ServerChat.broadcastMessage("&e" + newUser.getData().getName()  + " joined the game.");
+
+				LobbyServer.onPlayerJoin(newUser.getPlayer());
 			} else if (cmd.getType() == CommandType.ADIOS) {
 				User offUser = users.get(cmd.getSenderKey());
 				List<User> restUsers = getRestUsers(cmd.getSenderKey());
 				
 				Utils.sendOFF(offUser, restUsers);
 				
-				ServerChat.broadcastMessage("&e" + offUser.getData().getName() + " left the game.");
 				users.remove(cmd.getSenderKey());
+				
+				LobbyServer.onPlayerLeave(offUser.getPlayer());
 			} else if (cmd.getType() == CommandType.MOVE) {
 				MOVE msg = MOVE.process(cmd.getCommand());
 				
 				User movedUser = users.get(cmd.getSenderKey());
 				List<User> restUsers = getRestUsers(cmd.getSenderKey());
 				
-				movedUser.getPlayerData().setPosition(msg.getX(), msg.getY());
+				movedUser.getPlayer().setPosition(msg.getX(), msg.getY());
 				
 				Utils.sendMOVE(movedUser, msg.getX(), msg.getY(), restUsers);
-			} else if (cmd.getType() == CommandType.CHAT){ // Cuando haya cuentas, cambiar el sistema de envio a
-				// chatmessage guarda el key y el mensaje y como en minecraft el chat, copiarlo literalmente
+				
+				LobbyServer.onPlayerMove(movedUser.getPlayer());
+			} else if (cmd.getType() == CommandType.CHAT){ 
 				CHAT msg = CHAT.process(cmd.getCommand());
 
-				ServerChat.broadcastMessage("<" + users.get(cmd.getSenderKey()).getData().getName() + "> " + msg.getMessage());
+				LobbyServer.onPlayerChat(users.get(cmd.getSenderKey()).getPlayer(), msg.getMessage());
 			} else if (cmd.getType() == CommandType.ALIVE) {
 				timeoutList.remove(cmd.getSenderKey());
 			} else {
@@ -124,7 +117,15 @@ public class UDPServer {
 		}
 	}
 	
-	public static void send(DatagramPacket datagram) throws IOException {
-		s.send(datagram);
+	public static List<User> getPlayers() {
+		return new ArrayList<>(users.values());
+	}
+	
+	public static void send(DatagramPacket datagram) {
+		try {
+			s.send(datagram); 
+		} catch (Exception e) {
+			ServerConsole.sendMessage(ChatColor.RED + e.getMessage());
+		}
 	}
 }

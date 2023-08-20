@@ -1,8 +1,11 @@
+package Server;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import CGTP.User;
+import Server.Objects.UDPServer;
+import Server.Objects.User;
+import Server.Objects.Utils;
 
 public class ServerTimer extends Thread {
 	
@@ -34,10 +37,7 @@ public class ServerTimer extends Thread {
 				Thread.sleep(20000);
 				
 				ServerChat.saveChat();
-				for(User user : UDPServer.users.values()) {
-					user.getAddress().isReachable(MAX_PRIORITY)
-				}
-				//sendTimeouts();
+				sendTimeouts();
 			} catch (InterruptedException | IOException e) {
 				e.printStackTrace();
 			}

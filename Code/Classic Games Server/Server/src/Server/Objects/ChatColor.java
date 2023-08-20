@@ -1,3 +1,4 @@
+package Server.Objects;
 
 public enum ChatColor {
 	BLACK("&0"),

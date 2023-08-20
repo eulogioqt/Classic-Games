@@ -1,7 +1,7 @@
-package CGTP;
+package Server.Objects;
 
 public class UserData {
-	private String name;
+	public String name;
 	
 	public UserData(String name) {
 		this.name = name;
@@ -10,7 +10,7 @@ public class UserData {
 	public String getName() {
 		return name;
 	}
-
+	
 	@Override
 	public String toString() {
 		return name;

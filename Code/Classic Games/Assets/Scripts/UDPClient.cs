@@ -47,6 +47,7 @@ public class UDPClient : MonoBehaviour {
     public GameObject messagesNotReadedGameObject;
     public Text messagesNotReadedText;
 
+    public GameObject connectingMenuGameObject;
     public Text serverErrorText;
 
     private UdpClient client;
@@ -94,6 +95,8 @@ public class UDPClient : MonoBehaviour {
 
     // version 9000 cuentas
 
+    // interfacear los protocol commands
+
     // AÑADIR SEGURIDAD PARA CONECTARSE Y DESCONECTARSE ASEGURARSE DE QUE LLEGUE EL MENSAJE
     // RESPONDIENDO Y DEMAS
 
@@ -104,10 +107,7 @@ public class UDPClient : MonoBehaviour {
         messagesNotReadedGameObject.SetActive(false);
         chatMenuGameObject.SetActive(false);
         nameMenuGameObject.SetActive(true);
-
-        users = new Dictionary<string, Player>();
-
-        client = new UdpClient();
+        connectingMenuGameObject.SetActive(false);
 
         sendButton.onClick.AddListener(delegate { sendChat(); });
         openChatButton.onClick.AddListener(delegate { openChat(); });
@@ -116,35 +116,52 @@ public class UDPClient : MonoBehaviour {
 
         confirmNameButton.onClick.AddListener(delegate { 
             if (nameField.text.Length > 0 && !nameField.text.Contains(";")) {
-                myName = nameField.text;
-                serverErrorText.text = "";
-
-                player = new GameObject("localhost", typeof(Player)).GetComponent<Player>();
-                player.initPlayer(myName, true);
+                messagesNotReaded = -1;
+                firstMessage = true;
 
                 server = new IPEndPoint(IPAddress.Parse(ipInputField.text), int.Parse(portInputField.text));
 
+                client = new UdpClient();
                 client.Connect(server);
 
-                onlineUsers = 1;
+                myName = nameField.text;
+                byte[] sendBytes = Encoding.ASCII.GetBytes("HOLA " + myName + ";0;0");
+                client.Send(sendBytes, sendBytes.Length);
 
-                // hcer funcion para el chat para decorarlo y me polto bonito
-                // uno que sea addmessage o algo asi ya q se añaden mensajes de muchos sitios
-                try {
-                    byte[] sendBytes = Encoding.ASCII.GetBytes("HOLA " + myName + ";0;0");
-                    client.Send(sendBytes, sendBytes.Length);
-                } catch (Exception e) {
-                    chatText.text += "<color=red>" + e.Message + "</color>\n";
-                }
-
-                StartCoroutine(getResponse());
+                StartCoroutine(surrenderIn(5));
 
                 nameMenuGameObject.SetActive(false);
+                connectingMenuGameObject.SetActive(true);
+
+                StartCoroutine(getResponse());
             }
         });
     }
 
-    private Vector2Int rez;
+    private IEnumerator surrenderIn(int n) {
+        yield return new WaitForSeconds(n);
+
+        if(connectingMenuGameObject.activeSelf)
+            onDisconnect("No se pudo conectar con el servidor: No hubo respuesta");
+    }
+
+    void onDisconnect(string message) {
+        serverErrorText.text = message;
+
+        nameMenuGameObject.SetActive(true);
+        connectingMenuGameObject.SetActive(false);
+    }
+
+    private void onConnect() {
+        serverErrorText.text = "";
+
+        player = new GameObject("localhost", typeof(Player)).GetComponent<Player>();
+        player.initPlayer(myName, true);
+
+        connectingMenuGameObject.SetActive(false);
+    }
+
+    private Vector2Int rez = new Vector2Int(Screen.height, Screen.width) / 2;
     public void toggleFullScreen() {
         FullScreenMode mode;
         if (Screen.fullScreenMode == FullScreenMode.Windowed) {
@@ -340,15 +357,29 @@ public class UDPClient : MonoBehaviour {
         closeChatButton.transform.localPosition = new Vector2(340, y > 380 ? 380 : y);
     }
 
+    bool firstMessage = true;
     private IEnumerator getResponse() {
         while (true) {
             if(client.Available > 0) {
-                COMMAND cmd = null;
+                COMMAND cmd;
                 try {
-                    cmd = new COMMAND(client.Receive(ref server)); Debug.Log(cmd.getCommand());
+                    cmd = new COMMAND(client.Receive(ref server)); 
+                    Debug.Log(cmd.getCommand());
                 } catch (Exception e) {
-                    serverErrorText.text = e.Message;
-                    nameMenuGameObject.SetActive(true);
+                    string msg;
+                    if(player != null) {
+                        Destroy(player.gameObject);
+                        msg = e.Message;
+                    } else
+                        msg = "No se pudo conectar con el servidor: Puerto inalcanzable";
+
+                    onDisconnect(msg);
+                    break;
+                }
+
+                if (firstMessage) {
+                    firstMessage = false;
+                    onConnect();
                 }
 
                 if (cmd.getType() == CommandType.CHAT) {
@@ -357,7 +388,7 @@ public class UDPClient : MonoBehaviour {
                     updateNotReaded();
 
                     addMessage(msg.getMessage());
-                } else if(cmd.getType() == CommandType.MOVE) {
+                } else if (cmd.getType() == CommandType.MOVE) {
                     MOVE msg = MOVE.process(cmd.getCommand());
 
                     users[msg.getKey()].updatePosition(new Vector2(msg.getX(), msg.getY()));
@@ -365,11 +396,11 @@ public class UDPClient : MonoBehaviour {
                     ON msg = ON.process(cmd.getCommand());
 
                     onlineUsers++;
-                    
+
                     Player newPlayer = new GameObject(msg.getData().getName(), typeof(Player)).GetComponent<Player>();
                     newPlayer.initPlayer(
-                        new Vector2(msg.getPlayerData().getX(), 
-                        msg.getPlayerData().getY()), 
+                        new Vector2(msg.getPlayerData().getX(),
+                        msg.getPlayerData().getY()),
                         msg.getData().getName());
                     users.Add(msg.getKey(), newPlayer);
 

@@ -1,4 +1,5 @@
-package CGTP;
+package Server.Objects;
+
 import java.net.InetAddress;
 
 public class User {
@@ -6,13 +7,13 @@ public class User {
 	private int port;
 	
 	private UserData data;
-	private PlayerData playerData;
+	private Player player;
 	
-	public User(InetAddress address, int port, UserData data, PlayerData playerData) {
+	public User(InetAddress address, int port, UserData data) {
 		this.address = address;
 		this.port = port;
+		
 		this.data = data;
-		this.playerData = playerData;
 	}
 	
 	public InetAddress getAddress() {
@@ -30,14 +31,14 @@ public class User {
 	public UserData getData() {
 		return data;
 	}
-	
-	public PlayerData getPlayerData() {
-		return playerData;
-	}
 
+	public Player getPlayer() {
+		return player;
+	}
+	
 	@Override
 	public String toString() {
-		return data + ";" + playerData;
+		return data + ";" + player;
 	}
 	
 	@Override
@@ -48,5 +49,9 @@ public class User {
 			r = address.equals(u.getAddress()) && port == u .getPort();
 		}
 		return r;
+	}
+	
+	public void setPlayer(Player player) {
+		this.player = player;
 	}
 }

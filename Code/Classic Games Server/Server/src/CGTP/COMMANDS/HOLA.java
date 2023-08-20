@@ -1,29 +1,35 @@
 package CGTP.COMMANDS;
 
-import CGTP.PlayerData;
-import CGTP.UserData;
+import Server.Objects.UserData;
 
 public class HOLA {
 	private UserData data;
-	private PlayerData playerData;
 	
-	private HOLA(UserData data, PlayerData playerData) {
+	private int x;
+	private int y;
+
+	private HOLA(UserData data, int x, int y) {
 		this.data = data;
-		this.playerData = playerData;
+		this.x = x;
+		this.y = y;
 	}
 	
 	public UserData getData() {
 		return data;
 	}
 	
-	public PlayerData getPlayerData() {
-		return playerData;
+	public int getX() {
+		return x;
+	}
+	
+	public int getY() {
+		return y;
 	}
 	
 	public static HOLA process(String message) {
 		String data = message.substring(5);
 		String[] list = data.split(";");
 		
-		return new HOLA(new UserData(list[0]), new PlayerData(Integer.parseInt(list[1]), Integer.parseInt(list[2])));
+		return new HOLA(new UserData(list[0]), Integer.parseInt(list[1]), Integer.parseInt(list[2]));
 	}
 }
