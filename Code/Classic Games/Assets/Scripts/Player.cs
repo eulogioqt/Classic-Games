@@ -14,8 +14,8 @@ public class Player : MonoBehaviour {
     // por si lo que esta pasando es que el unity lo coloca mal por alguna razon
     private string playerName;
 
-    private Vector3 newPosition;
-    private Vector3 difference;
+    private Vector3 newPosition = Vector3.zero;
+    private Vector3 difference = Vector3.zero;
 
     private int totalFrames = 0;
 
@@ -67,12 +67,11 @@ public class Player : MonoBehaviour {
     }
 
     private void FixedUpdate() {
-        if(!isRealPlayer) {
+        if (!isRealPlayer) {
             if (newPosition != gameObject.transform.localPosition) {
                 totalFrames++;
 
                 gameObject.transform.localPosition += difference / UDPClient.FPU;
-
                 if (totalFrames == UDPClient.FPU) {
                     totalFrames = 0;
 
@@ -80,6 +79,9 @@ public class Player : MonoBehaviour {
                     difference = Vector3.zero;
                 }
             }
+        } else if (newPosition != Vector3.zero) {
+            gameObject.transform.localPosition = newPosition;
+            newPosition = Vector3.zero;
         }
     }
 

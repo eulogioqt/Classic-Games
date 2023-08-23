@@ -1,7 +1,7 @@
 package CGTP.COMMANDS;
 
-public class TIMEOUT {
+public class STATUS {
 	public static String getMessage() {
-		return "TIMEOUT";
+		return "STATUS";
 	}
 }

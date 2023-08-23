@@ -15,4 +15,7 @@ public static class ChatColor {
 	public static string LIGHT_PURPLE = "&d";
     public static string YELLOW = "&e";
 	public static string WHITE = "&f";
+    public static string BOLD = "&l";
+    public static string ITALIC = "&o";
+    public static string UNDERLINE = "&n";
 }

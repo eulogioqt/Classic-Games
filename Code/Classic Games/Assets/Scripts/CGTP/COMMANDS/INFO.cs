@@ -19,7 +19,7 @@ public class INFO {
     }
 
     public int getOnlineUsers() {
-        return users.Count + 1;
+        return users.Count;
     }
 
     public static INFO process(string message) {

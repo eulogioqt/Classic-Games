@@ -16,7 +16,10 @@ public enum ChatColor {
 	RED("&c"),
 	LIGHT_PURPLE("&d"),
 	YELLOW("&e"),
-	WHITE("&f");
+	WHITE("&f"),
+	BOLD("&l"),
+	ITALIC("&o"),
+	UNDERLINE("&n");
 	
 	private final String value;
 	private ChatColor(String value) {

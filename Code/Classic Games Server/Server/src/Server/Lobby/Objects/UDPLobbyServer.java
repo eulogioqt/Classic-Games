@@ -1,4 +1,4 @@
-package Server.Objects;
+package Server.Lobby.Objects;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -11,23 +11,28 @@ import org.fusesource.jansi.AnsiConsole;
 
 import CGTP.CommandType;
 import CGTP.COMMANDS.CHAT;
-import CGTP.COMMANDS.COMMAND;
+import CGTP.COMMANDS.PROTOCOL_COMMAND;
 import CGTP.COMMANDS.HOLA;
 import CGTP.COMMANDS.MOVE;
 import Server.ServerChat;
-import Server.ServerConsole;
+import Server.Lobby.LobbyCommandManager;
+import Server.Lobby.LobbyEvents;
 import Server.Lobby.LobbyServer;
+import Server.Objects.ChatColor;
+import Server.Objects.User;
+import Server.Objects.Utils;
 
-public class UDPServer {
+public class UDPLobbyServer {
 	
 	// QUE CADA VEZ QUE SE CONECTE ALGUIEN, SE CREE UN THREAD ESCUCHANDO AL PUERTO DEL QUE SE HA CONECTADO
 	// DE ESTA FORMA, SE MEJORA EL RENDIMIENTO
 	// TAMBIEN QUE CUANDO VAYA A ENVIAR UN MENSAJE
 	
-	// QUE EL SERVIDOR RESPONDA CUANDO SE CONECTA ALGUIEN, PROTOCOLO ETC
-
+	// lo he visto dias despues y es buena idea, podria meter todo el codigo de atender a los comandos
+	// en user si veo que con el tiempo los comandos tienen que procesar mucho y asi una hebra por usuario
+	// procesaria solo los comandos de cada usuario idk
+	
 	public static Map<String, User> users = new HashMap<>();
-	public static List<String> timeoutList; // reemplazar por un bojeto propio que redefina el add del list con un booleano de updated
 	
 	private static DatagramSocket s;
 	
@@ -36,19 +41,6 @@ public class UDPServer {
 		sendTo.remove(key);
 		return new ArrayList<>(sendTo.values());
 	}
-	// cuando llega un mensaje, guardo en un hashmao user, int, el systemcurrentmillis de cuando ha llegao el mensaje
-	// si cuando toque el timeout, ese systemcurrentmillis es mayor que 30 segundos con el actual, envia timeout y a los 10s
-	// vuelve a comprobar ese systemtimemillis, si es menor que antes, no pasa na
-
-	// cunado llega un mensaje ,guardar el systemcurrentseconds, si en algun momento el systemcurrentseconds con el catual se diferencia en 30
-	// envia un mensaje timeout al servidor, y este debera responder con alive, si pasados 10s el systemcurrentseconds sigue siendo el mismo que antes
-	// da de baja, si es menor, no pasa na
-	
-	// el servidor cuando dices hola tendra que responder con welcome, durante ese rato e cliente estara
-	// conectando
-	
-	// cuando el servidor mate a alguien le envie un mensje de shutdown para si llega a procesarlo vea que ha muerto
-	
 	
 	public static void main(String[] args) throws IOException {
 		AnsiConsole.systemInstall();
@@ -56,8 +48,8 @@ public class UDPServer {
 		LobbyServer.onEnable();
 		
 		s = Utils.initSocket(11000);
-		ServerConsole.sendMessage(ChatColor.DARK_GREEN + "Inicializando socket...");
-		ServerConsole.sendMessage(ChatColor.GREEN + "Servidor inicializado correctamente en el puerto " + s.getLocalPort());
+		LobbyServer.getServerConsole().sendMessage(ChatColor.DARK_GREEN + "Inicializando socket...");
+		LobbyServer.getServerConsole().sendMessage(ChatColor.GREEN + "Servidor inicializado correctamente en el puerto " + s.getLocalPort());
 		
 		byte[] buffer;
 		while (true) {
@@ -65,10 +57,14 @@ public class UDPServer {
 
 			DatagramPacket dp = new DatagramPacket(buffer, buffer.length);
 			s.receive(dp);
+			
+			PROTOCOL_COMMAND cmd = new PROTOCOL_COMMAND(dp);
 
-			COMMAND cmd = new COMMAND(dp);
-			if(cmd.getType() != CommandType.HOLA && users.get(cmd.getSenderKey()) == null) // por si envia mensaje alguien que no esta conectado
+			if(cmd.getType() != CommandType.HOLA && !users.containsKey(cmd.getSenderKey())) // por si envia mensaje alguien que no esta conectado
 				continue;
+			
+			if(users.containsKey(cmd.getSenderKey())) // actualizar el timeouttime
+				users.get(cmd.getSenderKey()).setLastMessageTime(System.currentTimeMillis());
 			
 			if(cmd.getType() == CommandType.HOLA) {
 				HOLA msg = HOLA.process(cmd.getCommand());
@@ -79,21 +75,18 @@ public class UDPServer {
 				
 				List<User> restUsers = getRestUsers(cmd.getSenderKey());
 				
+				newUser.setLastMessageTime(System.currentTimeMillis());
 				users.put(cmd.getSenderKey(), newUser);
 				
 				Utils.sendON(newUser, restUsers);
 				Utils.sendINFO(newUser, restUsers, ServerChat.getChat());
-
-				LobbyServer.onPlayerJoin(newUser.getPlayer());
+				
+				LobbyServer.getServerConsole().sendMessage("Nueva conexion " + newUser.getData().getName() + " (" + newUser.getKey() + ")");
+				LobbyEvents.onPlayerJoin(newUser.getPlayer());
 			} else if (cmd.getType() == CommandType.ADIOS) {
 				User offUser = users.get(cmd.getSenderKey());
-				List<User> restUsers = getRestUsers(cmd.getSenderKey());
-				
-				Utils.sendOFF(offUser, restUsers);
-				
-				users.remove(cmd.getSenderKey());
-				
-				LobbyServer.onPlayerLeave(offUser.getPlayer());
+
+				kick(offUser, "Adios");
 			} else if (cmd.getType() == CommandType.MOVE) {
 				MOVE msg = MOVE.process(cmd.getCommand());
 				
@@ -104,28 +97,40 @@ public class UDPServer {
 				
 				Utils.sendMOVE(movedUser, msg.getX(), msg.getY(), restUsers);
 				
-				LobbyServer.onPlayerMove(movedUser.getPlayer());
+				LobbyEvents.onPlayerMove(movedUser.getPlayer());
 			} else if (cmd.getType() == CommandType.CHAT){ 
 				CHAT msg = CHAT.process(cmd.getCommand());
-
-				LobbyServer.onPlayerChat(users.get(cmd.getSenderKey()).getPlayer(), msg.getMessage());
+				
+				if(msg.getMessage().startsWith("/")) {
+					LobbyCommandManager.executeCommand(users.get(cmd.getSenderKey()).getPlayer(), msg.getMessage().substring(1));
+				} else
+					LobbyEvents.onPlayerChat(users.get(cmd.getSenderKey()).getPlayer(), msg.getMessage());
+			} else if (cmd.getType() == CommandType.STATUS) {
+				Utils.sendALIVE(users.get(cmd.getSenderKey()));
 			} else if (cmd.getType() == CommandType.ALIVE) {
-				timeoutList.remove(cmd.getSenderKey());
+
 			} else {
-				ServerConsole.sendMessage(ChatColor.RED + "Algo salio mal: " + cmd.getCommand());
+				LobbyServer.getServerConsole().sendMessage(ChatColor.RED + "Algo salio mal: " + cmd.getCommand());
 			}
 		}
 	}
 	
-	public static List<User> getPlayers() {
-		return new ArrayList<>(users.values());
+	public static void kick(User user, String message) {
+		List<User> restUsers = getRestUsers(user.getKey());
+		
+		Utils.sendOFF(user, restUsers);
+		Utils.sendDISCONNECT(user, message);
+
+		users.remove(user.getKey());
+
+		LobbyEvents.onPlayerLeave(user.getPlayer());
 	}
 	
 	public static void send(DatagramPacket datagram) {
 		try {
 			s.send(datagram); 
 		} catch (Exception e) {
-			ServerConsole.sendMessage(ChatColor.RED + e.getMessage());
+			LobbyServer.getServerConsole().sendMessage(ChatColor.RED + e.getMessage());
 		}
 	}
 }

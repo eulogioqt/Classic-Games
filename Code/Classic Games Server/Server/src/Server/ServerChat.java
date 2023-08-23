@@ -7,8 +7,9 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import Server.Lobby.LobbyServer;
+import Server.Lobby.Objects.UDPLobbyServer;
 import Server.Objects.ChatColor;
-import Server.Objects.UDPServer;
 import Server.Objects.User;
 import Server.Objects.Utils;
 
@@ -16,11 +17,15 @@ public class ServerChat { // hacerlo como el del minecraft, hashmap de chathisto
 	// no obstante, hacer antes chat para cada uno aunque no se guarde la parte de cada uno, o bien ir probando con el tener nombres distintos sin cuentas
 	private static List<String> chatHistory;
 	
-	public static void saveChat() throws IOException {
-		FileOutputStream fos = new FileOutputStream("chat");
-		ObjectOutputStream oos = new ObjectOutputStream(fos);
-		oos.writeObject(chatHistory);
-		oos.close();
+	public static void saveChat() {
+		try {
+			FileOutputStream fos = new FileOutputStream("chat");
+			ObjectOutputStream oos = new ObjectOutputStream(fos);
+			oos.writeObject(chatHistory);
+			oos.close();
+		} catch (IOException e) {
+			LobbyServer.getServerConsole().sendMessage(ChatColor.RED + "No se ha encontrado historial de chat: " + e.getMessage());
+		}
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -31,21 +36,20 @@ public class ServerChat { // hacerlo como el del minecraft, hashmap de chathisto
 			chatHistory = (ArrayList<String>) ois.readObject();
 			ois.close();
 		} catch (IOException | ClassNotFoundException e) {
-			ServerConsole.sendMessage(ChatColor.RED + "No se ha encontrado historial de chat: " + e.getMessage());
+			LobbyServer.getServerConsole().sendMessage(ChatColor.RED + "No se ha encontrado historial de chat: " + e.getMessage());
 		}
 		
 		if(chatHistory == null)
 			chatHistory = new ArrayList<>();
 	}
 	
-	// si en un futuro elimino que se guarde el chat, mover esta funcion a Utils
 	public static void broadcastMessage(String message) {
 		chatHistory.add(message);
 		
-		List<User> users = UDPServer.getPlayers();
+		List<User> users = new ArrayList<>(UDPLobbyServer.users.values());
 		Utils.sendCHAT(message, users);
 		
-		ServerConsole.sendMessage(message);
+		LobbyServer.getServerConsole().sendMessage(message);
 	}
 	
 	public static List<String> getChat() {

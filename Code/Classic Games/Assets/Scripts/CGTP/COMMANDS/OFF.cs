@@ -10,7 +10,7 @@ public class OFF {
     }
 
     public static OFF process(string message) {
-        string key = message.Substring(3);
+        string key = message.Substring(4);
 
         return new OFF(key);
     }

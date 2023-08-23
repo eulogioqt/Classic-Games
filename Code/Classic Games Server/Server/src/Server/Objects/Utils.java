@@ -5,13 +5,16 @@ import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import CGTP.COMMANDS.ALIVE;
 import CGTP.COMMANDS.CHAT;
 import CGTP.COMMANDS.INFO;
 import CGTP.COMMANDS.MOVE;
 import CGTP.COMMANDS.OFF;
 import CGTP.COMMANDS.ON;
-import CGTP.COMMANDS.TIMEOUT;
-import Server.ServerConsole;
+import CGTP.COMMANDS.DISCONNECT;
+import CGTP.COMMANDS.STATUS;
+import Server.Lobby.LobbyServer;
+import Server.Lobby.Objects.UDPLobbyServer;
 
 public class Utils {
 	public static DatagramSocket initSocket(int puerto) {
@@ -19,7 +22,7 @@ public class Utils {
 		try {
 			s = new DatagramSocket(puerto);
 		} catch (SocketException e) {
-			ServerConsole.sendMessage(ChatColor.RED + e.getMessage());
+			LobbyServer.getServerConsole().sendMessage(ChatColor.RED + e.getMessage());
 		}
 		return s;
 	}
@@ -32,31 +35,55 @@ public class Utils {
 		return ds;
 	}
 	
+	public static void sendALIVE(User sendTo) {
+		UDPLobbyServer.send(createDatagram(ALIVE.getMessage(), sendTo));
+	}
+	
 	public static void sendCHAT(String message, List<User> users) {
 		for(User user : users)
-			UDPServer.send(Utils.createDatagram(CHAT.getMessage(message), user));
+			UDPLobbyServer.send(Utils.createDatagram(CHAT.getMessage(message), user));
+	}
+
+	public static void sendDISCONNECT(User offUser, String msg) {
+		UDPLobbyServer.send(createDatagram(DISCONNECT.getMessage(msg), offUser));
 	}
 	
 	public static void sendINFO(User sendTo, List<User> restUsers, List<String> chat) {
-		UDPServer.send(Utils.createDatagram(INFO.getMessage(sendTo.getKey(), restUsers, chat), sendTo));
+		UDPLobbyServer.send(Utils.createDatagram(INFO.getMessage(sendTo.getKey(), restUsers, chat), sendTo));
 	}
 	
 	public static void sendMOVE(User movedUser, int x, int y, List<User> restUsers) {
 		for(User user : restUsers)
-			UDPServer.send(Utils.createDatagram(MOVE.getMessage(movedUser.getKey(), x, y), user));
+			UDPLobbyServer.send(Utils.createDatagram(MOVE.getMessage(movedUser.getKey(), x, y), user));
 	}
 	
 	public static void sendOFF(User offUser, List<User> restUsers) {
 		for(User user : restUsers)
-			UDPServer.send(createDatagram(OFF.getMessage(offUser.getKey()), user));
+			UDPLobbyServer.send(createDatagram(OFF.getMessage(offUser.getKey()), user));
 	}
 	
 	public static void sendON(User onUser, List<User> restUsers) {
 		for(User user : restUsers) // send ON
-			UDPServer.send(createDatagram(ON.getMessage(onUser), user));
+			UDPLobbyServer.send(createDatagram(ON.getMessage(onUser), user));
 	}
 	
-	public static void sendTIMEOUT(User sendTo) {
-		UDPServer.send(createDatagram(TIMEOUT.getMessage(), sendTo));
+	public static void sendSTATUS(User sendTo) {
+		UDPLobbyServer.send(createDatagram(STATUS.getMessage(), sendTo));
+	}
+	
+	public static String argsToString(String[] args) {
+		String msg = "";
+		for(String arg : args)
+			msg += arg + " ";
+		msg = msg.substring(0, msg.length() - 1);
+		return msg;
+	}
+	
+	public static void sleep(long n) {
+		try {
+			Thread.sleep(n);
+		} catch (InterruptedException e) {
+			LobbyServer.getServerConsole().sendMessage(ChatColor.RED + "Ha habido algun problema durmiendo a la hebra de los comandos: " + e.getMessage());
+		}
 	}
 }

@@ -3,11 +3,12 @@ public enum CommandType {
 	ALIVE,
 	CHAT,
 	COMMAND,
+	DISCONNECT,
 	HOLA,
 	INFO,
 	MOVE,
 	OFF,
 	ON,
-	TIMEOUT,
+	STATUS,
 	UNKNOWN
 }

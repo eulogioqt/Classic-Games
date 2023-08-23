@@ -3,29 +3,31 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import Server.Objects.UDPServer;
+import Server.Lobby.LobbyServer;
+import Server.Lobby.Objects.UDPLobbyServer;
 import Server.Objects.User;
 import Server.Objects.Utils;
 
 public class ServerTimer extends Thread {
 	
 	private void sendTimeouts() throws IOException, InterruptedException {
-		UDPServer.timeoutList = new ArrayList<>(UDPServer.users.keySet());
+		List<String> sentAlives = new ArrayList<>();
+		for(User user : UDPLobbyServer.users.values()) {
+			if(System.currentTimeMillis() - user.getLastMessageTime() >= 30000) {
+				LobbyServer.getServerConsole().sendMessage("Enviado STATUS a " + user.getData().getName());
+				sentAlives.add(user.getKey());
+				Utils.sendSTATUS(user);
+			}
+		}
 		
-		for(String key : UDPServer.timeoutList)
-			Utils.sendTIMEOUT(UDPServer.users.get(key));
-		
-		Thread.sleep(10000); // Los que respondan en este tiempo, se quitaran de la lista y no se les desconectara
+		Thread.sleep(10000); // Tiempo para detectar algun nuevo mensaje del usuario
 
-		for(String key : UDPServer.timeoutList) {
-			User offUser = UDPServer.users.get(key);
-			if(offUser != null) { // Por si se ha desconectado
-				List<User> restUsers = UDPServer.getRestUsers(key);
+		for(String key : sentAlives) {
+			User offUser = UDPLobbyServer.users.get(key);
+			if(offUser != null && System.currentTimeMillis() - offUser.getLastMessageTime() >= 30000) { // Por si se ha desconectado en ese tiempo
+				LobbyServer.getServerConsole().sendMessage("Desconectando a " + offUser.getData().getName());
 				
-				Utils.sendOFF(offUser, restUsers);
-				
-				ServerChat.broadcastMessage("&e" + offUser.getData().getName() + " left the server");
-				UDPServer.users.remove(key);
+				UDPLobbyServer.kick(offUser, "TIMEOUT: Tu conexion a Internet no es estable");
 			}
 		}
 	}

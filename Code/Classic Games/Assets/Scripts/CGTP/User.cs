@@ -3,13 +3,18 @@ public class User {
 	private int port;
 	
 	private UserData data;
-	private PlayerData playerData;
+
+	private int x;
+	private int y;
 	
-	public User(string address, int port, UserData data, PlayerData playerData) {
+	public User(string address, int port, UserData data, int x, int y) {
 		this.address = address;
 		this.port = port;
+
 		this.data = data;
-		this.playerData = playerData;
+
+		this.x = x;
+		this.y = y;
 	}
 	
 	public string getAddress() {
@@ -27,12 +32,16 @@ public class User {
 	public UserData getData() {
 		return data;
 	}
-	
-	public PlayerData getPlayerData() {
-		return playerData;
-	}
 
-	public override string ToString() {
-		return data + ";" + playerData;
+    public int getX() {
+        return x;
+    }
+
+    public int getY() {
+        return x;
+    }
+
+    public override string ToString() {
+		return data + ";" + x + ";" + y;
 	}
 }

@@ -2,9 +2,13 @@ package Server.Objects;
 
 import java.net.InetAddress;
 
+import Server.Lobby.Objects.Player;
+
 public class User {
 	private InetAddress address; // crear key
 	private int port;
+	
+	private long lastMessageTime;
 	
 	private UserData data;
 	private Player player;
@@ -26,6 +30,10 @@ public class User {
 	
 	public String getKey() {
 		return address + ":" + port;
+	}
+	
+	public long getLastMessageTime() {
+		return lastMessageTime;
 	}
 
 	public UserData getData() {
@@ -49,6 +57,10 @@ public class User {
 			r = address.equals(u.getAddress()) && port == u .getPort();
 		}
 		return r;
+	}
+	
+	public void setLastMessageTime(long lastMessageTime) {
+		this.lastMessageTime = lastMessageTime;
 	}
 	
 	public void setPlayer(Player player) {
