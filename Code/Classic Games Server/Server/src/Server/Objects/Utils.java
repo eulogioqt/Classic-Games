@@ -1,6 +1,7 @@
 package Server.Objects;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -11,6 +12,7 @@ import CGTP.COMMANDS.INFO;
 import CGTP.COMMANDS.MOVE;
 import CGTP.COMMANDS.OFF;
 import CGTP.COMMANDS.ON;
+import CGTP.COMMANDS.PING;
 import CGTP.COMMANDS.DISCONNECT;
 import CGTP.COMMANDS.STATUS;
 import Server.Lobby.LobbyServer;
@@ -28,10 +30,16 @@ public class Utils {
 	}
 	
 	public static DatagramPacket createDatagram(String text, User user) {
-		DatagramPacket ds = new DatagramPacket(text.getBytes(StandardCharsets.UTF_8),
-				text.getBytes(StandardCharsets.UTF_8).length,
-				user.getAddress(),
-				user.getPort());
+		return createDatagram(text, user.getAddress(), user.getPort());
+	}
+	
+	public static DatagramPacket createDatagram(String text, InetAddress address, int port) {
+		byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
+		DatagramPacket ds = new DatagramPacket(
+				bytes,
+				bytes.length,
+				address,
+				port);
 		return ds;
 	}
 	
@@ -65,6 +73,10 @@ public class Utils {
 	public static void sendON(User onUser, List<User> restUsers) {
 		for(User user : restUsers) // send ON
 			UDPLobbyServer.send(createDatagram(ON.getMessage(onUser), user));
+	}
+	
+	public static void sendPING(InetAddress address, int port, int onlinePlayers) {
+		UDPLobbyServer.send(createDatagram(PING.getMessage(onlinePlayers), address, port));
 	}
 	
 	public static void sendSTATUS(User sendTo) {

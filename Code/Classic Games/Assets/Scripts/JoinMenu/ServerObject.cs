@@ -1,14 +1,17 @@
-using Unity.VisualScripting;
+using System;
+using System.Collections;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class ServerObject : MonoBehaviour {
 
-    private JoinMenuController controller;
     private int index;
 
     private string serverName;
-    private string IP;
+    private IPAddress IP;
     private int port;
 
     private Image frameImage;
@@ -17,23 +20,92 @@ public class ServerObject : MonoBehaviour {
     private Text serverStatusText;
     private Text serverOnlinePlayersText;
 
+    private UdpClient client = null;
+    private Coroutine lastCoroutine = null;
+
     public void pingServer() {
+        serverOnlinePlayersText.text = "";
+        serverStatusText.text = "";
 
+        if (client != null)
+            client.Close();
+        client = new UdpClient();
+        
+        if (lastCoroutine != null)
+            StopCoroutine(lastCoroutine);
+        lastCoroutine = StartCoroutine(ping());
     }
 
-    public void joinServer() {
+    private IEnumerator ping() {
+        IPEndPoint server = new IPEndPoint(IP, port);
+        yield return new WaitForSeconds(0.5f + UnityEngine.Random.Range(0f, 1f + 0.1f * index));
 
+        long time = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        bool answered = false;
+
+        try {
+            client.Connect(server);
+            serverStatusText.text = "Pinging...";
+
+            byte[] sendBytes = Encoding.ASCII.GetBytes(PING.getMessage());
+            client.Send(sendBytes, sendBytes.Length);
+        } catch (Exception) {
+            answered = true;
+            serverStatusText.text = "<color=red>Host invalido</color>";
+            serverOnlinePlayersText.text = "<color=red>X</color>";
+        }
+
+        while (!answered && DateTimeOffset.UtcNow.ToUnixTimeSeconds() - time < 10) {
+            try {
+                if(client.Available > 0) {
+                    COMMAND cmd = new COMMAND(client.Receive(ref server));
+                    if (cmd.getType() == CommandType.PING) {
+                        PING msg = PING.process(cmd.getCommand());
+                        answered = true;
+
+                        serverOnlinePlayersText.text = "Online: " + msg.getOnlinePlayers();
+                        serverStatusText.text = "<color=green>Servidor conectado</color>";
+                    }
+                }
+            } catch (Exception) {
+                time = long.MaxValue;
+            }
+
+            if(!answered) {
+                byte[] sendBytes = Encoding.ASCII.GetBytes(PING.getMessage());
+                client.Send(sendBytes, sendBytes.Length);
+            }
+
+            yield return new WaitForSeconds(1);
+        }
+
+        if (!answered) {
+            serverStatusText.text = "<color=red>No se puede conectar con el servidor</color>";
+            serverOnlinePlayersText.text = "<color=red>X</color>";
+        }
+
+        client.Close();
     }
 
-    public void initServer(int index, JoinMenuController controller, string serverName) {
+    private void doubleClick() {
+        joinServer(JoinMenuController.getInstance().getLocalUser());
+    }
+
+    private void oneClick() {
+        JoinMenuController.getInstance().selectServer(index);
+    }
+
+    public void joinServer(User user) {
+        ConnectionController.getInstance().tryConnecting(IP, port, user);
+    }
+
+    public void initServer(string serverName, IPAddress IP, int port) {
         this.serverName = serverName;
-        this.controller = controller;
-        this.index = index;
+        this.IP = IP;
+        this.port = port;
 
         gameObject.AddComponent<Image>();
-        gameObject.AddComponent<Button>().onClick.AddListener(delegate {
-            this.controller.selectServer(this.index);
-        });
+        gameObject.AddComponent<Button>().onClick.AddListener(clickServer);
 
         gameObject.GetComponent<RectTransform>().sizeDelta = new Vector3(1150, 150, 0);
         gameObject.GetComponent<RectTransform>().anchorMax = new Vector2(0.5f, 1);
@@ -74,7 +146,7 @@ public class ServerObject : MonoBehaviour {
         serverStatusText.transform.SetParent(gameObject.transform);
         serverStatusText.GetComponent<RectTransform>().sizeDelta = new Vector3(952, 55, 0);
         serverStatusText.GetComponent<RectTransform>().anchoredPosition = new Vector3(76, -30, 0);
-        serverStatusText.text = "Conectando con el servidor...";
+        serverStatusText.text = "";
         serverStatusText.fontSize = 40;
         serverStatusText.color = new Color32(142, 142, 142, 255);
         serverStatusText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
@@ -86,7 +158,7 @@ public class ServerObject : MonoBehaviour {
         serverOnlinePlayersText.transform.SetParent(gameObject.transform);
         serverOnlinePlayersText.GetComponent<RectTransform>().sizeDelta = new Vector3(952, 55, 0);
         serverOnlinePlayersText.GetComponent<RectTransform>().anchoredPosition = new Vector3(76, 30, 0);
-        serverOnlinePlayersText.text = "Online: ?";
+        serverOnlinePlayersText.text = "";
         serverOnlinePlayersText.fontSize = 30;
         serverOnlinePlayersText.color = Color.black;
         serverOnlinePlayersText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
@@ -94,7 +166,33 @@ public class ServerObject : MonoBehaviour {
         serverOnlinePlayersText.raycastTarget = false;
     }
 
+    public string getName() {
+        return serverName;
+    }
+
+    public IPAddress getIP() {
+        return IP;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public void setIndex(int index) {
+        this.index = index;
+    }
+
     public void selectFrame(bool b) {
         frameImage.gameObject.SetActive(b);
+    }
+
+    private long time = 0;
+    private void clickServer() {
+        if (DateTimeOffset.Now.ToUnixTimeMilliseconds() - time < 500 && JoinMenuController.getInstance().getSelectedServer() == index)
+            doubleClick();
+        else
+            oneClick();
+
+        time = DateTimeOffset.Now.ToUnixTimeMilliseconds();
     }
 }

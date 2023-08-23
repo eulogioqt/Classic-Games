@@ -10,6 +10,7 @@ public enum CommandType {
 	MOVE,
 	OFF,
 	ON,
+	PING,
 	STATUS,
 	UNKNOWN
 }

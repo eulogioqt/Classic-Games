@@ -6,8 +6,15 @@ public class User {
 
 	private int x;
 	private int y;
-	
-	public User(string address, int port, UserData data, int x, int y) {
+
+    public User(UserData data, int x, int y) {
+        this.data = data;
+
+        this.x = x;
+        this.y = y;
+    }
+
+    public User(string address, int port, UserData data, int x, int y) {
 		this.address = address;
 		this.port = port;
 

@@ -19,6 +19,37 @@ public class Player : MonoBehaviour {
 
     private int totalFrames = 0;
 
+    private void FixedUpdate() {
+        if (!isRealPlayer) {
+            if (newPosition != gameObject.transform.localPosition) {
+                totalFrames++;
+
+                gameObject.transform.localPosition += difference / UDPClient.FPU;
+                if (totalFrames == UDPClient.FPU) {
+                    totalFrames = 0;
+
+                    gameObject.transform.localPosition = newPosition;
+                    difference = Vector3.zero;
+                }
+            }
+        } else if (newPosition != Vector3.zero) {
+            gameObject.transform.localPosition = newPosition;
+            newPosition = Vector3.zero;
+        }
+    }
+
+    public void updatePosition(Vector2 position) {
+        totalFrames = 0;
+        newPosition = position;
+        difference = newPosition - gameObject.transform.localPosition;
+    }
+
+    public string getName() {
+        return playerName;
+    }
+
+
+
     public void initPlayer(Vector2 position, string playerName) {
         initPlayer(playerName);
 
@@ -64,34 +95,5 @@ public class Player : MonoBehaviour {
         gameObject.transform.localScale = Vector3.one;
         gameObject.GetComponent<Image>().color = Color.gray;
         gameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(100, 100);
-    }
-
-    private void FixedUpdate() {
-        if (!isRealPlayer) {
-            if (newPosition != gameObject.transform.localPosition) {
-                totalFrames++;
-
-                gameObject.transform.localPosition += difference / UDPClient.FPU;
-                if (totalFrames == UDPClient.FPU) {
-                    totalFrames = 0;
-
-                    gameObject.transform.localPosition = newPosition;
-                    difference = Vector3.zero;
-                }
-            }
-        } else if (newPosition != Vector3.zero) {
-            gameObject.transform.localPosition = newPosition;
-            newPosition = Vector3.zero;
-        }
-    }
-
-    public void updatePosition(Vector2 position) {
-        totalFrames = 0;
-        newPosition = position;
-        difference = newPosition - gameObject.transform.localPosition;
-    }
-
-    public string getName() {
-        return playerName;
     }
 }

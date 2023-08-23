@@ -60,8 +60,12 @@ public class UDPLobbyServer {
 			
 			PROTOCOL_COMMAND cmd = new PROTOCOL_COMMAND(dp);
 
-			if(cmd.getType() != CommandType.HOLA && !users.containsKey(cmd.getSenderKey())) // por si envia mensaje alguien que no esta conectado
+			if(cmd.getType() == CommandType.PING)
+				Utils.sendPING(cmd.getAddress(), cmd.getPort(), users.size());
+			
+			if(cmd.getType() != CommandType.HOLA && !users.containsKey(cmd.getSenderKey())) { // por si envia mensaje alguien que no esta conectado
 				continue;
+			}
 			
 			if(users.containsKey(cmd.getSenderKey())) // actualizar el timeouttime
 				users.get(cmd.getSenderKey()).setLastMessageTime(System.currentTimeMillis());

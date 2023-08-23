@@ -20,9 +20,9 @@ public class KickCommand implements CommandExecutor {
 		else if (args.length > 0){
 			Player p = LobbyServer.getPlayer(args[0]);
 			if(p != null) {
-				ServerChat.broadcastMessage("&4" + sender.getName() + "&c ha expulsado a &4" + p.getName());
-				UDPLobbyServer.kick(p.getUser(), args.length == 1 ? "Has sido expulsado del servidor" : 
-					Utils.argsToString(Arrays.copyOfRange(args, 1, args.length)));
+				String motivo = args.length == 1 ? "Has sido expulsado del servidor" :  Utils.argsToString(Arrays.copyOfRange(args, 1, args.length));
+				ServerChat.broadcastMessage("&4" + sender.getName() + "&c ha expulsado a &4" + p.getName() +"&c por: &4" + motivo);
+				UDPLobbyServer.kick(p.getUser(), motivo);
 			} else
 				sender.sendMessage("&cEl jugador &4&n" + args[0] + "&c no esta conectado");
 		}
