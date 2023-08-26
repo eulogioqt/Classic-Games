@@ -14,10 +14,10 @@ import CGTP.COMMANDS.CHAT;
 import CGTP.COMMANDS.PROTOCOL_COMMAND;
 import CGTP.COMMANDS.HOLA;
 import CGTP.COMMANDS.MOVE;
-import Server.ServerChat;
 import Server.Lobby.LobbyCommandManager;
 import Server.Lobby.LobbyEvents;
 import Server.Lobby.LobbyServer;
+import Server.Lobby.ServerChat;
 import Server.Objects.ChatColor;
 import Server.Objects.User;
 import Server.Objects.Utils;
@@ -33,8 +33,10 @@ public class UDPLobbyServer {
 	// procesaria solo los comandos de cada usuario idk
 	
 	public static Map<String, User> users = new HashMap<>();
-	
+	public static String version = "1.0.10";
 	private static DatagramSocket s;
+	
+	public static String MOTD = "Servidor de pruebas por defecto de CG";
 	
 	public static List<User> getRestUsers(String key) {
 		Map<String, User> sendTo = new HashMap<>(users);
@@ -48,8 +50,8 @@ public class UDPLobbyServer {
 		LobbyServer.onEnable();
 		
 		s = Utils.initSocket(11000);
-		LobbyServer.getServerConsole().sendMessage(ChatColor.DARK_GREEN + "Inicializando socket...");
-		LobbyServer.getServerConsole().sendMessage(ChatColor.GREEN + "Servidor inicializado correctamente en el puerto " + s.getLocalPort());
+		LobbyServer.getServerConsole().sendMessage("&2Inicializando socket...");
+		LobbyServer.getServerConsole().sendMessage("&aServidor inicializado correctamente en el puerto " + s.getLocalPort() + " y la version " + version);
 		
 		byte[] buffer;
 		while (true) {
@@ -61,7 +63,7 @@ public class UDPLobbyServer {
 			PROTOCOL_COMMAND cmd = new PROTOCOL_COMMAND(dp);
 
 			if(cmd.getType() == CommandType.PING)
-				Utils.sendPING(cmd.getAddress(), cmd.getPort(), users.size());
+				Utils.sendPING(cmd.getAddress(), cmd.getPort(), users.size(), version, LobbyServer.MOTD);
 			
 			if(cmd.getType() != CommandType.HOLA && !users.containsKey(cmd.getSenderKey())) { // por si envia mensaje alguien que no esta conectado
 				continue;

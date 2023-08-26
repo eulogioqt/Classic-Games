@@ -21,10 +21,14 @@ import Server.Lobby.Objects.UDPLobbyServer;
 public class Utils {
 	public static DatagramSocket initSocket(int puerto) {
 		DatagramSocket s = null;
-		try {
-			s = new DatagramSocket(puerto);
-		} catch (SocketException e) {
-			LobbyServer.getServerConsole().sendMessage(ChatColor.RED + e.getMessage());
+		
+		int i = 0;
+		while(s == null) {
+			try {
+				s = new DatagramSocket(puerto + i);
+			} catch (SocketException e) {
+				i++;
+			}
 		}
 		return s;
 	}
@@ -75,8 +79,8 @@ public class Utils {
 			UDPLobbyServer.send(createDatagram(ON.getMessage(onUser), user));
 	}
 	
-	public static void sendPING(InetAddress address, int port, int onlinePlayers) {
-		UDPLobbyServer.send(createDatagram(PING.getMessage(onlinePlayers), address, port));
+	public static void sendPING(InetAddress address, int port, int onlinePlayers, String version, String MOTD) {
+		UDPLobbyServer.send(createDatagram(PING.getMessage(onlinePlayers, version, MOTD), address, port));
 	}
 	
 	public static void sendSTATUS(User sendTo) {

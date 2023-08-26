@@ -7,11 +7,6 @@ using UnityEngine.UI;
 public class Player : MonoBehaviour {
 
     public bool isRealPlayer = false;
-    // lo que pasa es que a veces no ha terminado de llegar al final
-    // y ya hay una nueva posicion, o que por alguna razon, avanza mas lento y cuando llega al FPU'esimo frame
-    // hace el update on fin el TP ese y se ve como lag, creo que la cola puede ayudar a resolver lo primero,
-    // que se vayan atendiendo las posiciones una a una, y para lo otro usando un lastPosition en vez de la posicion real
-    // por si lo que esta pasando es que el unity lo coloca mal por alguna razon
     private string playerName;
 
     private Vector3 newPosition = Vector3.zero;
@@ -47,8 +42,6 @@ public class Player : MonoBehaviour {
     public string getName() {
         return playerName;
     }
-
-
 
     public void initPlayer(Vector2 position, string playerName) {
         initPlayer(playerName);

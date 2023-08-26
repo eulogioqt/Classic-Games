@@ -82,3 +82,5 @@ TIMEOUT (Servidor -> Cliente) => Lo envia el servidor periodicamente a todos los
 estos tendran que responder con cualquier mensaje (en e su caso un mensaje ALIVE) para saber que siguen conectados. Los que no lo hagan, seran desconectados.
 
 ALIVE (Cliente -> Servidor) => Lo envia el cliente para confirmar que sigue ahi y no se ha desconectado en respuesta a un TIMEOUT.
+
+PING Y STATUS

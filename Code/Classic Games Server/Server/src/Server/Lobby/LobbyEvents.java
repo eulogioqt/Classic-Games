@@ -1,6 +1,5 @@
 package Server.Lobby;
 
-import Server.ServerChat;
 import Server.Lobby.Objects.Player;
 
 public class LobbyEvents {

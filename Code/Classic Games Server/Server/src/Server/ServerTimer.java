@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import Server.Lobby.LobbyServer;
+import Server.Lobby.ServerChat;
 import Server.Lobby.Objects.UDPLobbyServer;
 import Server.Objects.User;
 import Server.Objects.Utils;

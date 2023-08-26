@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
 using System.Net.Sockets;
+using UnityEngine.EventSystems;
 
 public class ConnectionController : MonoBehaviour {
     public GameObject connectingMenuGameObject;
@@ -38,19 +39,24 @@ public class ConnectionController : MonoBehaviour {
             connectingMenuGameObject.SetActive(false);
         });
 
+        JoinMenuController.getInstance().setMenuActive(true);
         connectingMenuGameObject.SetActive(true);
     }
 
     public void tryConnecting(IPAddress IP, int port, User user) {
-        closeButton.gameObject.SetActive(false);
+        if (user.getData().getName().Length > 0 && !user.getData().getName().Contains(";")) {
+            closeButton.gameObject.SetActive(false);
 
-        notificationText.GetComponent<RectTransform>().localPosition = Vector3.zero;
-        notificationText.text = "Conectando con el servidor...";
+            notificationText.GetComponent<RectTransform>().localPosition = Vector3.zero;
+            notificationText.text = "Conectando con el servidor...";
 
-        PlayerPrefs.SetString("Name", user.getData().getName());
-        StartCoroutine(tryConnection(IP, port, user));
+            PlayerPrefs.SetString("Name", user.getData().getName());
+            StartCoroutine(tryConnection(IP, port, user));
 
-        connectingMenuGameObject.SetActive(true);
+            JoinMenuController.getInstance().setMenuActive(true);
+            connectingMenuGameObject.SetActive(true);
+        } else
+            setDisconnected("Nombre de usuario no permitido", false);
     }
 
     private IEnumerator tryConnection(IPAddress IP, int port, User user) {
@@ -62,7 +68,7 @@ public class ConnectionController : MonoBehaviour {
         try {
             client.Connect(server);
 
-            byte[] sendBytes = Encoding.ASCII.GetBytes(HOLA.getMessage(user));
+            byte[] sendBytes = Encoding.ASCII.GetBytes(PING.getMessage());
             client.Send(sendBytes, sendBytes.Length);
         } catch (Exception) {
             state = "Host desconocido. Revisa que la direccion IP sea la correcta.";
@@ -72,8 +78,18 @@ public class ConnectionController : MonoBehaviour {
             try {
                 if (client.Available > 0) {
                     COMMAND cmd = new COMMAND(client.Receive(ref server));
-                    if (cmd.getType() == CommandType.INFO) {
-                        notificationText.text = "Entrando al servidor..";
+                    if (cmd.getType() == CommandType.PING) {
+                        PING msg = PING.process(cmd.getCommand());
+
+                        if (msg.getVersion().Equals(Application.version)) {
+                            byte[] sendBytes = Encoding.ASCII.GetBytes(HOLA.getMessage(user));
+                            client.Send(sendBytes, sendBytes.Length);
+
+                            notificationText.text = "Entrando al servidor...";
+                        } else
+                            state = "Tu version del juego (" + Application.version + ") no coincide" +
+                                "con la version del servidor (" + msg.getVersion() + ")";
+                    } else if (cmd.getType() == CommandType.INFO) {
                         state = "OK";
 
                         UDPClient.getInstance().onConnect(cmd, server, client, user);
@@ -82,7 +98,7 @@ public class ConnectionController : MonoBehaviour {
                         JoinMenuController.getInstance().setMenuActive(false);
                     }
                 }
-            } catch (Exception) { }
+            } catch (Exception e) { Debug.Log(e.Message); time = 0; }
 
             yield return new WaitForSeconds(1);
         }

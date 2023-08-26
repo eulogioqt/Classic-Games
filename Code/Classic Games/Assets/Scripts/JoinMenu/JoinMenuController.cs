@@ -18,6 +18,7 @@ public class JoinMenuController : MonoBehaviour {
     public Button deleteButton;
     public Button joinButton;
     public Button directConexionButton;
+    public Button exitButton;
 
 
     public GameObject addServerMenuGameObject;
@@ -64,6 +65,7 @@ public class JoinMenuController : MonoBehaviour {
         deleteButton.onClick.AddListener(deleteServer);
         joinButton.onClick.AddListener(joinServer);
         directConexionButton.onClick.AddListener(openDirectConnectionMenu);
+        exitButton.onClick.AddListener(Application.Quit);
 
         addConfirmButton.onClick.AddListener(addServer);
         cancelAddServerButton.onClick.AddListener(closeAddServerMenu);
@@ -125,8 +127,7 @@ public class JoinMenuController : MonoBehaviour {
     }
 
     public void joinServer() {
-        if (nameInput.text.Length > 0 && !nameInput.text.Contains(";"))
-            serverList[selectedServer].joinServer(getLocalUser());
+        serverList[selectedServer].joinServer(getLocalUser());
     }
 
     public void selectServer(int index) {

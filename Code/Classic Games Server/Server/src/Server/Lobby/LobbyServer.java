@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import Server.ServerChat;
+import Server.FileManager;
 import Server.ServerConsole;
 import Server.ServerTimer;
 import Server.Lobby.Commands.External.BroadcastCommand;
@@ -18,6 +18,8 @@ public class LobbyServer {
 	private static ServerTimer st;
 	private static ServerConsole sc;
 	
+	public static String MOTD;
+	
 	public static void onEnable() {
 		sc = new ServerConsole();
 		new Thread(sc).start();
@@ -28,6 +30,9 @@ public class LobbyServer {
 		
 		ServerChat.loadChat();
 		LobbyServer.getServerConsole().sendMessage(ChatColor.DARK_GREEN + "Cargando chat...");
+		
+		MOTD = FileManager.readFile("config", "MOTD", "Servidor de Classic Games");
+		LobbyServer.getServerConsole().sendMessage(ChatColor.DARK_GREEN + "Cargando configuracion...");
 		
 		st = new ServerTimer();
 		st.start();

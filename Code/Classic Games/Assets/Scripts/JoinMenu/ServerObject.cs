@@ -3,6 +3,8 @@ using System.Collections;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using TMPro;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -16,16 +18,16 @@ public class ServerObject : MonoBehaviour {
 
     private Image frameImage;
     private Image serverImage;
-    private Text serverNameText;
-    private Text serverStatusText;
-    private Text serverOnlinePlayersText;
+    private TextMeshProUGUI serverNameText;
+    private TextMeshProUGUI serverStatusText;
+    private TextMeshProUGUI serverOnlinePlayersText;
 
     private UdpClient client = null;
     private Coroutine lastCoroutine = null;
 
     public void pingServer() {
         serverOnlinePlayersText.text = "";
-        serverStatusText.text = "";
+        setStatus("");
 
         if (client != null)
             client.Close();
@@ -45,13 +47,13 @@ public class ServerObject : MonoBehaviour {
 
         try {
             client.Connect(server);
-            serverStatusText.text = "Pinging...";
+            setStatus("Pinging...");
 
             byte[] sendBytes = Encoding.ASCII.GetBytes(PING.getMessage());
             client.Send(sendBytes, sendBytes.Length);
         } catch (Exception) {
             answered = true;
-            serverStatusText.text = "<color=red>Host invalido</color>";
+            setStatus("&4Host invalido");
             serverOnlinePlayersText.text = "<color=red>X</color>";
         }
 
@@ -63,12 +65,14 @@ public class ServerObject : MonoBehaviour {
                         PING msg = PING.process(cmd.getCommand());
                         answered = true;
 
-                        serverOnlinePlayersText.text = "Online: " + msg.getOnlinePlayers();
-                        serverStatusText.text = "<color=green>Servidor conectado</color>";
+                        serverOnlinePlayersText.text = msg.getVersion().Equals(Application.version) ?
+                            "Online: " + msg.getOnlinePlayers() :
+                            "<color=red>X " + msg.getVersion() + "</color>";
+                        setStatus(msg.getMOTD());
                     }
                 }
             } catch (Exception) {
-                time = long.MaxValue;
+                time = 0;
             }
 
             if(!answered) {
@@ -80,11 +84,15 @@ public class ServerObject : MonoBehaviour {
         }
 
         if (!answered) {
-            serverStatusText.text = "<color=red>No se puede conectar con el servidor</color>";
+            setStatus("&4No se puede conectar con el servidor");
             serverOnlinePlayersText.text = "<color=red>X</color>";
         }
 
         client.Close();
+    }
+
+    private void setStatus(string status) {
+        serverStatusText.text = CGText.transformToGameColors("&7" + status, false);
     }
 
     private void doubleClick() {
@@ -111,14 +119,14 @@ public class ServerObject : MonoBehaviour {
         gameObject.GetComponent<RectTransform>().anchorMax = new Vector2(0.5f, 1);
         gameObject.GetComponent<RectTransform>().anchorMin = new Vector2(0.5f, 1);
         gameObject.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 1);
-        gameObject.GetComponent<Image>().color = new Color32(255, 255, 255, 175);
+        gameObject.GetComponent<Image>().color = new Color32(255, 255, 255, 100);
         gameObject.name = serverName;
 
         frameImage = new GameObject("frameImage").AddComponent<Image>();
         frameImage.transform.SetParent(gameObject.transform);
         frameImage.GetComponent<RectTransform>().anchoredPosition = new Vector3(0, 0, 0);
         frameImage.GetComponent<RectTransform>().sizeDelta = new Vector3(1150, 150, 0);
-        frameImage.GetComponent<Image>().color = new Color32(255, 255, 255, 200);
+        frameImage.GetComponent<Image>().color = new Color32(255, 255, 255, 125);
         frameImage.raycastTarget = false;
         frameImage.gameObject.SetActive(false);
 
@@ -130,39 +138,41 @@ public class ServerObject : MonoBehaviour {
         serverImage.raycastTarget = false;
 
 
-        serverNameText = new GameObject("serverNameText").AddComponent<Text>();
+        serverNameText = new GameObject("serverNameText").AddComponent<TextMeshProUGUI>();
         serverNameText.transform.SetParent(gameObject.transform);
         serverNameText.GetComponent<RectTransform>().sizeDelta = new Vector3(760, 55, 0);
         serverNameText.GetComponent<RectTransform>().anchoredPosition = new Vector3(-20, 30, 0);
         serverNameText.text = serverName;
         serverNameText.fontSize = 40;
+        serverNameText.overflowMode = TextOverflowModes.Truncate;
         serverNameText.color = Color.black;
-        serverNameText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-        serverNameText.alignment = TextAnchor.MiddleLeft;
+        serverNameText.font = Resources.Load<TMP_FontAsset>("Fonts/Minecraftia-Regular SDF");
+        serverNameText.alignment = TextAlignmentOptions.MidlineLeft;
         serverNameText.raycastTarget = false;
 
 
-        serverStatusText = new GameObject("serverStatusText").AddComponent<Text>();
+        serverStatusText = new GameObject("serverStatusText").AddComponent<TextMeshProUGUI>();
         serverStatusText.transform.SetParent(gameObject.transform);
         serverStatusText.GetComponent<RectTransform>().sizeDelta = new Vector3(952, 55, 0);
         serverStatusText.GetComponent<RectTransform>().anchoredPosition = new Vector3(76, -30, 0);
         serverStatusText.text = "";
         serverStatusText.fontSize = 40;
-        serverStatusText.color = new Color32(142, 142, 142, 255);
-        serverStatusText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-        serverStatusText.alignment = TextAnchor.MiddleLeft;
+        serverStatusText.font = Resources.Load<TMP_FontAsset>("Fonts/Minecraftia-Regular SDF");
+        serverStatusText.alignment = TextAlignmentOptions.MidlineLeft;
         serverStatusText.raycastTarget = false;
 
 
-        serverOnlinePlayersText = new GameObject("serverOnlinePlayersText").AddComponent<Text>();
+        serverOnlinePlayersText = new GameObject("serverOnlinePlayersText").AddComponent<TextMeshProUGUI>();
         serverOnlinePlayersText.transform.SetParent(gameObject.transform);
         serverOnlinePlayersText.GetComponent<RectTransform>().sizeDelta = new Vector3(952, 55, 0);
         serverOnlinePlayersText.GetComponent<RectTransform>().anchoredPosition = new Vector3(76, 30, 0);
         serverOnlinePlayersText.text = "";
+        serverOnlinePlayersText.fontStyle = FontStyles.Bold;
+
         serverOnlinePlayersText.fontSize = 30;
         serverOnlinePlayersText.color = Color.black;
-        serverOnlinePlayersText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-        serverOnlinePlayersText.alignment = TextAnchor.UpperRight;
+        serverOnlinePlayersText.font = Resources.Load<TMP_FontAsset>("Fonts/Minecraftia-Regular SDF");
+        serverOnlinePlayersText.alignment = TextAlignmentOptions.TopRight;
         serverOnlinePlayersText.raycastTarget = false;
     }
 

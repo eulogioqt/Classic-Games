@@ -2,8 +2,8 @@ package Server.Lobby.Commands;
 
 import java.util.Arrays;
 
-import Server.ServerChat;
 import Server.Lobby.LobbyServer;
+import Server.Lobby.ServerChat;
 import Server.Lobby.Objects.Command;
 import Server.Lobby.Objects.CommandExecutor;
 import Server.Lobby.Objects.CommandSender;

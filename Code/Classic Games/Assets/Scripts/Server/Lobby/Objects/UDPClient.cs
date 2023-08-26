@@ -6,7 +6,6 @@ using System.Text;
 using System.Collections;
 using System;
 using System.Collections.Generic;
-using TMPro;
 
 public class UDPClient : MonoBehaviour {
     // Started by @eulogioqt on 13/08/2023
@@ -14,15 +13,9 @@ public class UDPClient : MonoBehaviour {
     // TO-DO
     // Receive on other thread:
     // https://stackoverflow.com/questions/53731293/sending-udp-calls-in-unity-on-android
-    
-    public TMP_Text chatText;
-    public TMP_Text shadowText;
-    public Button sendButton;
-    public InputField sendText;
 
-    public GameObject chatMenuGameObject;
-    public Button closeChatButton;
-    public Button openChatButton;
+    private Dictionary<string, Player> users;
+    private Player player = null;
 
     public Text positionText;
 
@@ -30,42 +23,12 @@ public class UDPClient : MonoBehaviour {
     private int onlineUsers;
     private string myName;
 
-    private Dictionary<string, Player> users;
-    private Player player = null;
-
     public Button disconnectButton;
 
     public SmartButton upButton;
     public SmartButton rightButton;
     public SmartButton downButton;
     public SmartButton leftButton;
-    /*
-     * 
-     * 
-     * 
-     * 
-     * 
-     * 
-     * 
-     * 
-     *     COMANDO VERSION DEL WHATSAPP
-     * 
-     * 
-     * 
-     * 
-     * 
-     * 
-     * 
-     * 
-     */
-    public InputField nameField;
-
-    public GameObject backgroundChatGameObject;
-
-    public GameObject messagesNotReadedGameObject;
-    public Text messagesNotReadedText;
-
-    public Button exitButton;
 
     private IPEndPoint server;
     private UdpClient client;
@@ -75,9 +38,9 @@ public class UDPClient : MonoBehaviour {
     // PORQUE SI MANDO EN BROADCST NO ME PUEDEN RESPONDER WTF ESO NO LO ENTIENDE NI DON GABRIEL LUQUE
 
     public static int FPU = 10; // Frames Per Update
+    private long timeout = long.MaxValue;
 
-    private int speedMultiplier = 1;
-
+    private static UDPClient instance;
     // ESTRUCTURAR BIEN EL CODIGO Y HACER QUE PUEDAS PERSONALIZAR
     // TU CUADRADO CON COLORES SKINS Y DEMAS
     // Y TENER TU PROPIO NOMBRE Y QUE ESTO SE QUEDE COMO EL LOBBY
@@ -96,6 +59,27 @@ public class UDPClient : MonoBehaviour {
      * uno, envie uno solo con las 5 actualizaciones
      * 
     */
+
+    /*
+     * lo de version que tengo en whatsapp
+    un comando ping para el servidor que te de info nombre del server
+    los usuarios conectados y calcule el tiempo de respuesta
+
+    VERSION
+    MOTD
+    CHAT EN EL SCRIPT CHAT
+
+    servidor configurable
+    el MOTD en un archivo y cosas en los archivos tmb la foto del server y el chat
+    y el mundo del server que se cree en el server tmb
+    y que la camara y el mapa sea mas grande
+
+    pantalla dei nicio donde configurar el jugador 
+    pantalla de inicio donde acceder a la lista de servers
+
+    hacer sistema de cuentas
+    hacer el /login
+    entonces ya te puedes personalizar el personaje dentro del server*/
 
     // hacer funciones para cada tipo de mensaje
     // refactorizar - version 8
@@ -116,15 +100,8 @@ public class UDPClient : MonoBehaviour {
     // AÑADIR SEGURIDAD PARA CONECTARSE Y DESCONECTARSE ASEGURARSE DE QUE LLEGUE EL MENSAJE
     // RESPONDIENDO Y DEMAS
 
-    private long timeout;
-
-    private static UDPClient instance;
-    public static UDPClient getInstance() {
-        return instance;
-    }
-
     private void Awake() {
-        if(instance != null) {
+        if (instance != null) {
             Destroy(this);
         } else {
             instance = this;
@@ -136,11 +113,7 @@ public class UDPClient : MonoBehaviour {
     }
 
     private void loadButtons() {
-        sendButton.onClick.AddListener(delegate { sendChat(); });
-        openChatButton.onClick.AddListener(delegate { openChat(); });
-        closeChatButton.onClick.AddListener(delegate { closeChat(); });
         disconnectButton.onClick.AddListener(delegate { onDisconnect("LEAVE"); });
-        exitButton.onClick.AddListener(delegate { Application.Quit(); });
     }
 
     public void onConnect(COMMAND cmd, IPEndPoint server, UdpClient client, User user) {
@@ -149,17 +122,12 @@ public class UDPClient : MonoBehaviour {
         this.user = user;
 
         timeout = long.MaxValue;
-        messagesNotReaded = -1;
-        isChatOpen = false;
-
-        messagesNotReadedGameObject.SetActive(false);
-        chatMenuGameObject.SetActive(false);
+        Chat.getInstance().resetChat();
 
         player = new GameObject(user.getData().getName()).AddComponent<Player>();
         player.initPlayer(user.getData().getName(), true);
 
         processCommand(cmd);
-
         StartCoroutine(getResponse());
     }
 
@@ -183,177 +151,9 @@ public class UDPClient : MonoBehaviour {
         }
     }
 
-    // CHAT // CHAT // CHAT // CHAT // CHAT // CHAT // CHAT
-    private void sendChat() {
-        if (sendText.text.Length > 0) {
-            onSend(sendText.text.Replace(";", "<pc>"));
-            sendText.text = "";
-        }
-    }
-
-    private void openChat() {
-        clearNotReaded();
-
-        sendText.Select();
-        sendText.ActivateInputField();
-
-        isChatOpen = true;
-        chatMenuGameObject.SetActive(true);
-    }
-
-    private void closeChat() {
-        isChatOpen = false;
-        chatMenuGameObject.SetActive(false);
-    }
-
-    private void updateNotReaded() {
-        if (!isChatOpen) {
-            messagesNotReaded++;
-            messagesNotReadedText.text = messagesNotReaded.ToString();
-        }
-
-        if (messagesNotReaded > 0)
-            messagesNotReadedGameObject.SetActive(true);
-    }
-
-    private void clearNotReaded() {
-        messagesNotReaded = 0;
-        messagesNotReadedGameObject.SetActive(false);
-    }
-
-    private int messagesNotReaded = -1;
-    private bool isChatOpen = false;
-
-    private Dictionary<string, string> GameColor = new Dictionary<string, string>() {
-        { "&0", "<color=#000000>" },
-        { "&1", "<color=#0000AA>" },
-        { "&2", "<color=#00AA00>" },
-        { "&3", "<color=#00AAAA>" },
-        { "&4", "<color=#AA0000>" },
-        { "&5", "<color=#AA00AA>" },
-        { "&6", "<color=#FFAA00>" },
-        { "&7", "<color=#AAAAAA>" },
-        { "&8", "<color=#555555>" },
-        { "&9", "<color=#5555FF>" },
-        { "&a", "<color=#55FF55>" },
-        { "&b", "<color=#55FFFF>" },
-        { "&c", "<color=#FF5555>" },
-        { "&d", "<color=#FF55FF>" },
-        { "&e", "<color=#FFFF55>" },
-        { "&f", "<color=#FFFFFF>" },
-        { "&l", "<b>" },
-        { "&o", "<i>" },
-        { "&n", "<s>" }
-    };
-
-    private Dictionary<string, string> GameShadowColor = new Dictionary<string, string>() {
-        { "&0", "<color=#000000>" },
-        { "&1", "<color=#00002B>" },
-        { "&2", "<color=#002B00>" },
-        { "&3", "<color=#002B2B>" },
-        { "&4", "<color=#2B0000>" },
-        { "&5", "<color=#2B002B>" },
-        { "&6", "<color=#402B00>" },
-        { "&7", "<color=#2C2C2C>" },
-        { "&8", "<color=#161616>" },
-        { "&9", "<color=#161640>" },
-        { "&a", "<color=#164016>" },
-        { "&b", "<color=#164040>" },
-        { "&c", "<color=#401616>" },
-        { "&d", "<color=#401640>" },
-        { "&e", "<color=#404016>" },
-        { "&f", "<color=#404040>" },
-        { "&l", "<b>" },
-        { "&o", "<i>" },
-        { "&n", "<s>" }
-    };
-
-    public string transformToGameColors(string message, bool shadow) {
-        StringBuilder transformedMessage = new StringBuilder();
-        char[] msg = message.ToCharArray();
-
-        bool isBold = false; int b = 0;
-        bool isItalic = false; int it = 0;
-        bool isUnderline = false; int u = 0;
-        for (int i = 0; i < message.Length; i++) {
-            if (msg[i] == '&') {
-                if (i + 1 < msg.Length) {
-                    string myChar = msg[i + 1].ToString().ToLower();
-                    int listLength = typeof(ChatColor).GetFields().Length;
-
-                    int j = 0;
-                    while (j < listLength && !((string)typeof(ChatColor).GetFields()[j].GetValue(null))[1].ToString().ToLower().Equals(myChar))
-                        j++;
-
-                    if (j < listLength) {
-                        string addText = (isBold ? "</b>" : "") + (isItalic ? "</i>" : "") + (isUnderline ? "</s>" : "");
-
-                        bool isColor = false;
-                        if (myChar == ChatColor.BOLD[1].ToString().ToLower()) {
-                            isBold = true;
-                            b++;
-                        } else if (myChar == ChatColor.ITALIC[1].ToString().ToLower()) {
-                            isItalic = true;
-                            it++;
-                        } else if (myChar == ChatColor.UNDERLINE[1].ToString().ToLower()) {
-                            isUnderline = true;
-                            u++;
-                        } else {
-                            if (isBold) b--;
-                            if (isItalic) it--;
-                            if (isUnderline) u--;
-
-                            isBold = false;
-                            isItalic = false;
-                            isUnderline = false;
-                            isColor = true;
-                        }
-
-                        string color = (isColor ? addText : "") +
-                            (shadow ? GameShadowColor[(string)typeof(ChatColor).GetFields()[j].GetValue(null)] :
-                            GameColor[(string)typeof(ChatColor).GetFields()[j].GetValue(null)]);
-                        transformedMessage.Append(color);
-
-                        i++;
-                    } else transformedMessage.Append(msg[i]);
-                }
-            } else
-                transformedMessage.Append(msg[i]);
-        }
-
-        for (int i = 0; i < b; i++)
-            transformedMessage.Append("</b>");
-
-        for (int i = 0; i < it; i++)
-            transformedMessage.Append("</i>");
-
-        for (int i = 0; i < u; i++)
-            transformedMessage.Append("</s>");
-
-        return (shadow ? GameShadowColor[ChatColor.WHITE] : GameColor[ChatColor.WHITE]) + transformedMessage.ToString();
-    }
-
-    private void updateChatGUI() {
-        float p = chatText.preferredHeight;
-        chatText.GetComponent<RectTransform>().sizeDelta = new Vector2(1275, p + 5);
-        shadowText.GetComponent<RectTransform>().sizeDelta = new Vector2(1275, p + 5);
-
-        backgroundChatGameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(1300, chatText.GetComponent<RectTransform>().sizeDelta.y);
-        float y = -380 + backgroundChatGameObject.GetComponent<RectTransform>().sizeDelta.y;
-
-        closeChatButton.transform.localPosition = new Vector2(340, y > 380 ? 380 : y);
-    }
-
-    public void addMessage(string message) {
-        chatText.text += "\n" + transformToGameColors(message, false);
-        shadowText.text += "\n" + transformToGameColors(message, true);
-    }
-
-    // CHAT // CHAT // CHAT // CHAT // CHAT // CHAT // CHAT
-
     private void sendSTATUS() {
         byte[] sendBytes = Encoding.ASCII.GetBytes(STATUS.getMessage());
-        
+
         client.Send(sendBytes, sendBytes.Length);
     }
 
@@ -364,42 +164,17 @@ public class UDPClient : MonoBehaviour {
             onDisconnect("El servidor no responde");
     }
 
-    
+
     private void Update() {
         if (Input.GetKeyDown(KeyCode.F11))
             toggleFullScreen();
 
-        if (player == null)
-            return;
-
-
-
-        if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() - timeout >= 30) {
+        if (player != null && DateTimeOffset.UtcNow.ToUnixTimeSeconds() - timeout >= 30) {
             timeout = long.MaxValue;
             StartCoroutine(timeoutOnSeconds(10));
-            
+
             sendSTATUS();
         }
-
-        if (Input.GetKey(KeyCode.LeftShift))
-            speedMultiplier = 2;
-        else
-            speedMultiplier = 1;
-
-        if (chatText.text.StartsWith("\n")) {
-            shadowText.text = shadowText.text.Substring(1);
-            chatText.text = chatText.text.Substring(1);
-            updateChatGUI();
-        }
-
-        if (Input.GetKeyDown(KeyCode.T) && !isChatOpen)
-            openChat();
-
-        if (Input.GetKeyDown(KeyCode.Escape) && isChatOpen)
-            closeChat();
-
-        if (Input.GetKeyDown(KeyCode.Return) && isChatOpen)
-            sendChat();
     }
 
     private int waitFrames;
@@ -407,33 +182,33 @@ public class UDPClient : MonoBehaviour {
     private void FixedUpdate() {
         waitFrames++;
 
-        if (player != null && !isChatOpen) {
+        if (player != null && !Chat.getInstance().isChatOpen()) {
             Vector3 position = player.transform.localPosition;
             Vector3 size = player.GetComponent<RectTransform>().sizeDelta;
             positionText.text = position.x + ", " + position.y;
 
-            int move = 5 * speedMultiplier;
+            int move = 5 * (Input.GetKey(KeyCode.LeftShift) ? 2 : 1);
 
             int x = 0;
             int y = 0;
             if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow) || upButton.isPressed) {
                 upButton.GetComponent<Image>().color = upButton.GetComponent<Button>().colors.pressedColor;
-                if(position.y + move <= 1080/2 - size.y) y += move;
+                if (position.y + move <= 1080 / 2 - size.y) y += move;
             } else upButton.GetComponent<Image>().color = upButton.GetComponent<Button>().colors.normalColor;
 
             if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow) || rightButton.isPressed) {
                 rightButton.GetComponent<Image>().color = upButton.GetComponent<Button>().colors.pressedColor;
-                if (position.x + move <= 1920/2 - size.x) x += move;
+                if (position.x + move <= 1920 / 2 - size.x) x += move;
             } else rightButton.GetComponent<Image>().color = upButton.GetComponent<Button>().colors.normalColor;
 
             if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow) || downButton.isPressed) {
                 downButton.GetComponent<Image>().color = upButton.GetComponent<Button>().colors.pressedColor;
-                if (position.y - move >= -1080/2 + size.y) y -= move;
+                if (position.y - move >= -1080 / 2 + size.y) y -= move;
             } else downButton.GetComponent<Image>().color = upButton.GetComponent<Button>().colors.normalColor;
 
             if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow) || leftButton.isPressed) {
                 leftButton.GetComponent<Image>().color = upButton.GetComponent<Button>().colors.pressedColor;
-                if (position.x - move >= -1920/2 + size.x) x -= move;
+                if (position.x - move >= -1920 / 2 + size.x) x -= move;
             } else leftButton.GetComponent<Image>().color = upButton.GetComponent<Button>().colors.normalColor;
 
             if (x != 0 || y != 0) {// Actualizar localmente fluidamente
@@ -449,40 +224,19 @@ public class UDPClient : MonoBehaviour {
             if (waitFrames >= FPU && lastSentPosition != position) {
                 lastSentPosition = position;
                 waitFrames = 0;
-                onMove(position.x + ";" + position.y);
+                send(MOVE.getMessage((int)position.x, (int)position.y));
             }
         }
-    }
-
-    private void onSend(string text) {
-        byte[] sendBytes = Encoding.ASCII.GetBytes("CHAT " + text);
-
-        client.Send(sendBytes, sendBytes.Length);
-    }
-
-    public void onMove(string position) {
-        byte[] sendBytes = Encoding.ASCII.GetBytes("MOVE " + position);
-
-        client.Send(sendBytes, sendBytes.Length);
-    }
-
-
-    
-
-    public void send(string message) {
-        byte[] sendBytes = Encoding.ASCII.GetBytes(ALIVE.getMessage());
-
-        client.Send(sendBytes, sendBytes.Length);
     }
 
     public void processCommand(COMMAND cmd) {
         if (cmd.getType() == CommandType.CHAT) {
             CHAT msg = CHAT.process(cmd.getCommand());
 
-            updateNotReaded();
+            Chat.getInstance().updateNotReaded();
 
-            addMessage(msg.getMessage());
-            updateChatGUI();
+            Chat.getInstance().addMessage(msg.getMessage());
+            Chat.getInstance().updateChatGUI();
         } else if (cmd.getType() == CommandType.MOVE) {
             MOVE msg = MOVE.process(cmd.getCommand());
 
@@ -518,10 +272,10 @@ public class UDPClient : MonoBehaviour {
 
             onlineUsers = msg.getOnlineUsers();
             foreach (string line in msg.getChat())
-                addMessage(line);
+                Chat.getInstance().addMessage(line);
 
             updateInfo();
-            updateChatGUI();
+            Chat.getInstance().updateChatGUI();
         } else if (cmd.getType() == CommandType.STATUS) {
             send(ALIVE.getMessage());
         } else if (cmd.getType() == CommandType.DISCONNECT) {
@@ -554,8 +308,13 @@ public class UDPClient : MonoBehaviour {
         onlineText.text = "Online: " + onlineUsers;
     }
 
+    public void send(string message) {
+        byte[] sendBytes = Encoding.ASCII.GetBytes(message);
+        client.Send(sendBytes, sendBytes.Length);
+    }
+
     private void OnApplicationQuit() {
-        if(client != null && client.Client != null && client.Client.Connected) {
+        if (client != null && client.Client != null && client.Client.Connected) {
             byte[] sendBytes = Encoding.ASCII.GetBytes(ADIOS.getMessage());
             client.Send(sendBytes, sendBytes.Length);
 
@@ -576,5 +335,9 @@ public class UDPClient : MonoBehaviour {
             mode = FullScreenMode.Windowed;
             Screen.SetResolution(rez.x, rez.y, mode);
         }
+    }
+
+    public static UDPClient getInstance() {
+        return instance;
     }
 }

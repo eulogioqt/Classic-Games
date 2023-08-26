@@ -1,13 +1,15 @@
-package Server;
+package Server.Lobby;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-import Server.Lobby.LobbyServer;
 import Server.Lobby.Objects.UDPLobbyServer;
 import Server.Objects.ChatColor;
 import Server.Objects.User;
@@ -19,7 +21,10 @@ public class ServerChat { // hacerlo como el del minecraft, hashmap de chathisto
 	
 	public static void saveChat() {
 		try {
-			FileOutputStream fos = new FileOutputStream("chat");
+			if(!Files.exists(Paths.get("logs")))
+				Files.createDirectory(Paths.get("logs"));
+			
+			FileOutputStream fos = new FileOutputStream("logs/chat");
 			ObjectOutputStream oos = new ObjectOutputStream(fos);
 			oos.writeObject(chatHistory);
 			oos.close();
@@ -31,10 +36,12 @@ public class ServerChat { // hacerlo como el del minecraft, hashmap de chathisto
 	@SuppressWarnings("unchecked")
 	public static void loadChat () {
 		try {
-			FileInputStream fis = new FileInputStream("chat");
+			FileInputStream fis = new FileInputStream("logs/chat");
 			ObjectInputStream ois = new ObjectInputStream(fis);
 			chatHistory = (ArrayList<String>) ois.readObject();
 			ois.close();
+		} catch (FileNotFoundException e) {
+			saveChat();
 		} catch (IOException | ClassNotFoundException e) {
 			LobbyServer.getServerConsole().sendMessage(ChatColor.RED + "No se ha encontrado historial de chat: " + e.getMessage());
 		}

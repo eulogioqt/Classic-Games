@@ -1,6 +1,6 @@
 package Server.Lobby.Commands;
 
-import Server.ServerChat;
+import Server.Lobby.ServerChat;
 import Server.Lobby.Objects.Command;
 import Server.Lobby.Objects.CommandExecutor;
 import Server.Lobby.Objects.CommandSender;

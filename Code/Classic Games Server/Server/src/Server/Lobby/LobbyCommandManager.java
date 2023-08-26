@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import Server.ServerChat;
 import Server.Lobby.Commands.KickCommand;
 import Server.Lobby.Commands.StopCommand;
 import Server.Lobby.Objects.Command;
