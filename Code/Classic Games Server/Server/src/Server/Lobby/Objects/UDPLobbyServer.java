@@ -2,7 +2,6 @@ package Server.Lobby.Objects;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,17 +9,16 @@ import java.util.Map;
 import org.fusesource.jansi.AnsiConsole;
 
 import CGTP.CommandType;
-import CGTP.COMMANDS.CHAT;
 import CGTP.COMMANDS.PROTOCOL_COMMAND;
-import CGTP.COMMANDS.HOLA;
-import CGTP.COMMANDS.MOVE;
+import CGTP.COMMANDS.LOBBY.CHAT;
+import CGTP.COMMANDS.LOBBY.HOLA;
+import CGTP.COMMANDS.LOBBY.MOVE;
 import Server.Lobby.LobbyCommandManager;
 import Server.Lobby.LobbyEvents;
 import Server.Lobby.LobbyServer;
-import Server.Lobby.ServerChat;
-import Server.Objects.ChatColor;
-import Server.Objects.User;
-import Server.Objects.Utils;
+import Server.Lobby.LobbyUtils;
+import Server.ChatColor;
+import Server.Lobby.LobbyChat;
 
 public class UDPLobbyServer {
 	
@@ -32,24 +30,20 @@ public class UDPLobbyServer {
 	// en user si veo que con el tiempo los comandos tienen que procesar mucho y asi una hebra por usuario
 	// procesaria solo los comandos de cada usuario idk
 	
-	public static Map<String, User> users = new HashMap<>();
+	public static Map<String, LobbyUser> users = new HashMap<>();
+	//public static Map<String, User> networkUsers = new HashMap<>(); para poder llevar bien el numero de coenctados
+	
 	public static String version = "1.0.10";
 	private static DatagramSocket s;
 	
 	public static String MOTD = "Servidor de pruebas por defecto de CG";
-	
-	public static List<User> getRestUsers(String key) {
-		Map<String, User> sendTo = new HashMap<>(users);
-		sendTo.remove(key);
-		return new ArrayList<>(sendTo.values());
-	}
 	
 	public static void main(String[] args) throws IOException {
 		AnsiConsole.systemInstall();
 		
 		LobbyServer.onEnable();
 		
-		s = Utils.initSocket(11000);
+		s = LobbyUtils.initSocket(11000);
 		LobbyServer.getServerConsole().sendMessage("&2Inicializando socket...");
 		LobbyServer.getServerConsole().sendMessage("&aServidor inicializado correctamente en el puerto " + s.getLocalPort() + " y la version " + version);
 		
@@ -63,7 +57,7 @@ public class UDPLobbyServer {
 			PROTOCOL_COMMAND cmd = new PROTOCOL_COMMAND(dp);
 
 			if(cmd.getType() == CommandType.PING)
-				Utils.sendPING(cmd.getAddress(), cmd.getPort(), users.size(), version, LobbyServer.MOTD);
+				LobbyUtils.sendPING(cmd.getAddress(), cmd.getPort(), users.size(), version, LobbyServer.MOTD);
 			
 			if(cmd.getType() != CommandType.HOLA && !users.containsKey(cmd.getSenderKey())) { // por si envia mensaje alguien que no esta conectado
 				continue;
@@ -75,33 +69,33 @@ public class UDPLobbyServer {
 			if(cmd.getType() == CommandType.HOLA) {
 				HOLA msg = HOLA.process(cmd.getCommand());
 
-				User newUser = new User(cmd.getAddress(), cmd.getPort(), msg.getData());
+				LobbyUser newUser = new LobbyUser(cmd.getAddress(), cmd.getPort(), msg.getData());
 				Player player = new Player(msg.getX(), msg.getY(), newUser);
 				newUser.setPlayer(player);
 				
-				List<User> restUsers = getRestUsers(cmd.getSenderKey());
+				List<LobbyUser> restUsers = LobbyUtils.getRestUsers(cmd.getSenderKey());
 				
 				newUser.setLastMessageTime(System.currentTimeMillis());
 				users.put(cmd.getSenderKey(), newUser);
 				
-				Utils.sendON(newUser, restUsers);
-				Utils.sendINFO(newUser, restUsers, ServerChat.getChat());
+				LobbyUtils.sendON(newUser, restUsers);
+				LobbyUtils.sendINFO(newUser, restUsers, LobbyChat.getChat());
 				
 				LobbyServer.getServerConsole().sendMessage("Nueva conexion " + newUser.getData().getName() + " (" + newUser.getKey() + ")");
 				LobbyEvents.onPlayerJoin(newUser.getPlayer());
 			} else if (cmd.getType() == CommandType.ADIOS) {
-				User offUser = users.get(cmd.getSenderKey());
+				LobbyUser offUser = users.get(cmd.getSenderKey());
 
 				kick(offUser, "Adios");
 			} else if (cmd.getType() == CommandType.MOVE) {
 				MOVE msg = MOVE.process(cmd.getCommand());
 				
-				User movedUser = users.get(cmd.getSenderKey());
-				List<User> restUsers = getRestUsers(cmd.getSenderKey());
+				LobbyUser movedUser = users.get(cmd.getSenderKey());
+				List<LobbyUser> restUsers = LobbyUtils.getRestUsers(cmd.getSenderKey());
 				
 				movedUser.getPlayer().setPosition(msg.getX(), msg.getY());
 				
-				Utils.sendMOVE(movedUser, msg.getX(), msg.getY(), restUsers);
+				LobbyUtils.sendMOVE(movedUser, msg.getX(), msg.getY(), restUsers);
 				
 				LobbyEvents.onPlayerMove(movedUser.getPlayer());
 			} else if (cmd.getType() == CommandType.CHAT){ 
@@ -112,7 +106,7 @@ public class UDPLobbyServer {
 				} else
 					LobbyEvents.onPlayerChat(users.get(cmd.getSenderKey()).getPlayer(), msg.getMessage());
 			} else if (cmd.getType() == CommandType.STATUS) {
-				Utils.sendALIVE(users.get(cmd.getSenderKey()));
+				LobbyUtils.sendALIVE(users.get(cmd.getSenderKey()));
 			} else if (cmd.getType() == CommandType.ALIVE) {
 
 			} else {
@@ -121,11 +115,11 @@ public class UDPLobbyServer {
 		}
 	}
 	
-	public static void kick(User user, String message) {
-		List<User> restUsers = getRestUsers(user.getKey());
+	public static void kick(LobbyUser user, String message) {
+		List<LobbyUser> restUsers = LobbyUtils.getRestUsers(user.getKey());
 		
-		Utils.sendOFF(user, restUsers);
-		Utils.sendDISCONNECT(user, message);
+		LobbyUtils.sendOFF(user, restUsers);
+		LobbyUtils.sendDISCONNECT(user, message);
 
 		users.remove(user.getKey());
 

@@ -87,7 +87,7 @@ public class JoinMenuController : MonoBehaviour {
         try {
             int port = int.Parse(directPortInput.text);
             if (port >= 0 && port <= 65535) {
-                ConnectionController.getInstance().tryConnecting(
+                ConnectionController.getInstance().tryConnectingLobby(
                     IPAddress.Parse(directIPInput.text), port, getLocalUser());
             }
         } catch (Exception) { }

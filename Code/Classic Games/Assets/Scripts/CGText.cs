@@ -129,12 +129,18 @@ public class CGText : MonoBehaviour {
         return chatText.text;
     }
 
+    bool firstMessage = true;
     public void addText(string message) {
-        chatText.text += transformToGameColors(message, false);
-        shadowText.text += transformToGameColors(message, true);
+        chatText.text += (firstMessage ? "" : "\n") + transformToGameColors(message, false);
+        shadowText.text += (firstMessage ? "" : "\n") + transformToGameColors(message, true);
+
+        if (firstMessage)
+            firstMessage = false;
     }
 
     public void resetText() {
+        firstMessage = true;
+
         chatText.text = "";
         shadowText.text = "";
     }

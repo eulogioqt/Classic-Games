@@ -5,7 +5,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
 using System.Net.Sockets;
-using UnityEngine.EventSystems;
 
 public class ConnectionController : MonoBehaviour {
     public GameObject connectingMenuGameObject;
@@ -43,23 +42,27 @@ public class ConnectionController : MonoBehaviour {
         connectingMenuGameObject.SetActive(true);
     }
 
-    public void tryConnecting(IPAddress IP, int port, User user) {
-        if (user.getData().getName().Length > 0 && !user.getData().getName().Contains(";")) {
-            closeButton.gameObject.SetActive(false);
+    private void setConnecting(string message) {
+        closeButton.gameObject.SetActive(false);
 
-            notificationText.GetComponent<RectTransform>().localPosition = Vector3.zero;
-            notificationText.text = "Conectando con el servidor...";
+        notificationText.GetComponent<RectTransform>().localPosition = Vector3.zero;
+        notificationText.text = message;
+
+        JoinMenuController.getInstance().setMenuActive(true);
+        connectingMenuGameObject.SetActive(true);
+    }
+
+    public void tryConnectingLobby(IPAddress IP, int port, User user) {
+        if (user.getData().getName().Length > 0 && !user.getData().getName().Contains(";")) {
+            setConnecting("Conectando con el servidor...");
 
             PlayerPrefs.SetString("Name", user.getData().getName());
-            StartCoroutine(tryConnection(IP, port, user));
-
-            JoinMenuController.getInstance().setMenuActive(true);
-            connectingMenuGameObject.SetActive(true);
+            StartCoroutine(tryConnectionLobby(IP, port, user));
         } else
             setDisconnected("Nombre de usuario no permitido", false);
     }
 
-    private IEnumerator tryConnection(IPAddress IP, int port, User user) {
+    private IEnumerator tryConnectionLobby(IPAddress IP, int port, User user) {
         IPEndPoint server = new IPEndPoint(IP, port);
         UdpClient client = new UdpClient();
 
@@ -77,7 +80,7 @@ public class ConnectionController : MonoBehaviour {
         while (state.Length <= 0 && DateTimeOffset.UtcNow.ToUnixTimeSeconds() - time < 5) {
             try {
                 if (client.Available > 0) {
-                    COMMAND cmd = new COMMAND(client.Receive(ref server));
+                    COMMAND cmd = new COMMAND(Encoding.ASCII.GetString(client.Receive(ref server)));
                     if (cmd.getType() == CommandType.PING) {
                         PING msg = PING.process(cmd.getCommand());
 
@@ -92,7 +95,8 @@ public class ConnectionController : MonoBehaviour {
                     } else if (cmd.getType() == CommandType.INFO) {
                         state = "OK";
 
-                        UDPClient.getInstance().onConnect(cmd, server, client, user);
+                        UDPClient.getInstance().onConnect(server, client, user);
+                        UDPClient.getInstance().processCommand(cmd);
 
                         connectingMenuGameObject.SetActive(false);
                         JoinMenuController.getInstance().setMenuActive(false);
@@ -109,6 +113,67 @@ public class ConnectionController : MonoBehaviour {
         if (!state.Equals("OK")) {
             setDisconnected(state, false);
             client.Close();
+        }
+    }
+
+    public void tryConnectingParchis(IPAddress IP, int port, User user) {
+        LobbyChat.getInstance().addMessage("&5&l>> &dConectando con el servidor de parchis...");
+
+        setConnecting("Conectando con el servidor...");
+
+        StartCoroutine(tryConnectionParchis(IP, port, user));
+    }
+
+    private IEnumerator tryConnectionParchis(IPAddress IP, int port, User user) {
+        IPEndPoint server = new IPEndPoint(IP, port);
+        TcpClient client = new TcpClient();
+        NetworkStream stream = null;
+
+        string state = "";
+        long time = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        try {
+            client.Connect(server);
+            stream = client.GetStream();
+        } catch (Exception) {
+            state = "No se reconoce el host asignado al servidor de parchis";
+        }
+
+        while (state.Length <= 0 && DateTimeOffset.UtcNow.ToUnixTimeSeconds() - time < 5) {
+            try {
+                if(client.Available > 0) {
+                    byte[] data = new byte[256];
+                    string responseData = Encoding.ASCII.GetString(data, 0, stream.Read(data, 0, data.Length));
+                    COMMAND cmd = new COMMAND(new string(responseData.Substring(0, responseData.Length - 2)));
+
+                    if (cmd.getType() == CommandType.INFO) {
+                        state = "OK";
+
+                        UDPClient.getInstance().onDisconnect();
+                        TCPClient.getInstance().onConnect(client, server, user);
+                        TCPClient.getInstance().processCommand(cmd);
+
+                        connectingMenuGameObject.SetActive(false);
+                        JoinMenuController.getInstance().setMenuActive(false);
+                    } else if (cmd.getType() == CommandType.DISCONNECT) {
+                        DISCONNECT msg = DISCONNECT.process(cmd.getCommand());
+
+                        state = msg.getDisconnectMessage();
+                    }
+                }
+            } catch (Exception e) { Debug.Log(e.Message); time = 0; }
+            yield return new WaitForSeconds(1);
+        }
+
+        if (state.Length <= 0)
+            state = "No se pudo establecer conexion con el servidor de parchis";
+
+        if (state != "OK") {
+            LobbyChat.getInstance().addMessage("&4&l>> &c" + state);
+
+            UDPClient.getInstance().lobbyMenuGameObject.SetActive(true);
+            connectingMenuGameObject.SetActive(false);
+            JoinMenuController.getInstance().setMenuActive(false);
         }
     }
 

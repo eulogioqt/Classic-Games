@@ -4,44 +4,42 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import Server.ChatColor;
 import Server.FileManager;
-import Server.ServerConsole;
-import Server.ServerTimer;
 import Server.Lobby.Commands.External.BroadcastCommand;
+import Server.Lobby.Objects.LobbyUser;
 import Server.Lobby.Objects.Player;
 import Server.Lobby.Objects.UDPLobbyServer;
-import Server.Objects.ChatColor;
-import Server.Objects.User;
 
 public class LobbyServer {
 
-	private static ServerTimer st;
-	private static ServerConsole sc;
+	private static LobbyTimer st;
+	private static LobbyConsole sc;
 	
 	public static String MOTD;
 	
 	public static void onEnable() {
-		sc = new ServerConsole();
+		sc = new LobbyConsole();
 		new Thread(sc).start();
 		LobbyServer.getServerConsole().sendMessage(ChatColor.DARK_GREEN + "Cargando consola...");
 		
 		LobbyCommandManager.setExecutor("broadcast", new BroadcastCommand());
 		LobbyServer.getServerConsole().sendMessage(ChatColor.DARK_GREEN + "Cargando comandos...");
 		
-		ServerChat.loadChat();
+		LobbyChat.loadChat();
 		LobbyServer.getServerConsole().sendMessage(ChatColor.DARK_GREEN + "Cargando chat...");
 		
 		MOTD = FileManager.readFile("config", "MOTD", "Servidor de Classic Games");
 		LobbyServer.getServerConsole().sendMessage(ChatColor.DARK_GREEN + "Cargando configuracion...");
 		
-		st = new ServerTimer();
+		st = new LobbyTimer();
 		st.start();
 		LobbyServer.getServerConsole().sendMessage(ChatColor.DARK_GREEN + "Activando timer...");
 	}
 
 	public static List<Player> getOnlinePlayers() {
 		List<Player> onlinePlayers = new ArrayList<Player>();
-		for(User user : UDPLobbyServer.users.values())
+		for(LobbyUser user : UDPLobbyServer.users.values())
 			onlinePlayers.add(user.getPlayer());
 		return onlinePlayers;
 	}
@@ -60,7 +58,7 @@ public class LobbyServer {
 		return player;
 	}
 
-	public static ServerConsole getServerConsole() {
+	public static LobbyConsole getServerConsole() {
 		return sc;
 	}
 	

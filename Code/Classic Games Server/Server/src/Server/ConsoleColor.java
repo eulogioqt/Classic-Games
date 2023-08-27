@@ -1,6 +1,6 @@
 package Server;
 
-enum ConsoleColor {
+public enum ConsoleColor {
 	BLACK("\033[30m"), 
 	DARK_BLUE("\033[34m"), 
 	DARK_GREEN("\033[32m"), 
@@ -27,6 +27,54 @@ enum ConsoleColor {
 		this.value = value;
 	}
 
+	public static String transformToConsoleColors(String message) { // Replaces ChatColor codes efficiently
+		char[] transformedMessage = new char[1024 * 8];
+		char[] msg = message.toCharArray();
+
+		int j = 0;
+		boolean[] style = new boolean[4];
+		for (int i = 0; i < message.length(); i++) {
+			if (msg[i] == '&') {
+				if (i + 1 < msg.length) {
+					char myChar = Character.toLowerCase(msg[i + 1]);
+					int listLength = ChatColor.values().length;
+
+					int k = 0;
+					while (k < listLength && ChatColor.values()[k].toString().charAt(1) != myChar)
+						k++;
+
+					if (k < listLength) {
+						String addText = (style[0] ? "\033[22m" : "") + (style[1] ? "\033[23m" : "") + (style[2]  ? "\033[24m" : "");
+						
+						style[3] = false;
+						if(myChar == ChatColor.BOLD.toString().charAt(1))
+							style[0] = true;
+						else if(myChar == ChatColor.ITALIC.toString().charAt(1))
+							style[1] = true;
+						else if(myChar == ChatColor.UNDERLINE.toString().charAt(1))
+							style[2] = true;
+						else 
+							style = new boolean[] { false, false, false, true };
+						
+						char[] color = ((style[3] ? addText : "") + ConsoleColor.valueOf(ChatColor.values()[k].name())).toString().toCharArray();
+						int codeLength = color.length;
+						for (int h = 0; h < codeLength; h++) {
+							transformedMessage[j] = color[h];
+							j++;
+						}
+						
+						i++;
+					} else
+						transformedMessage[j] = msg[i];
+				}
+			} else
+				transformedMessage[j] = msg[i];
+			j++;
+		}
+		
+		return new String(transformedMessage) + ConsoleColor.WHITE + "\033[24m";
+	}
+	
 	@Override
 	public String toString() {
 		return value;

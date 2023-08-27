@@ -3,16 +3,15 @@ package Server.Lobby.Objects;
 import java.util.ArrayList;
 import java.util.List;
 
-import Server.Objects.User;
-import Server.Objects.Utils;
+import Server.Lobby.LobbyUtils;
 
-public class Player implements CommandSender {
+public class Player implements  CommandSender {
 	private int x;
 	private int y;
 	
-	private User user;
+	private LobbyUser user;
 	
-	public Player(int x, int y, User user) {
+	public Player(int x, int y, LobbyUser user) {
 		this.x = x;
 		this.y = y;
 		
@@ -27,7 +26,7 @@ public class Player implements CommandSender {
 		return y;
 	}
 	
-	public User getUser() {
+	public LobbyUser getUser() {
 		return user;
 	}
 	
@@ -43,7 +42,7 @@ public class Player implements CommandSender {
 	
 	public void teleport(int x, int y) {
 		setPosition(x, y);
-		Utils.sendMOVE(user, x, y, new ArrayList<>(UDPLobbyServer.users.values()));
+		LobbyUtils.sendMOVE(user, x, y, new ArrayList<>(UDPLobbyServer.users.values()));
 	}
 
 	@Override
@@ -53,8 +52,8 @@ public class Player implements CommandSender {
 	
 	@Override
 	public void sendMessage(String message) {
-		List<User> list = new ArrayList<>();
+		List<LobbyUser> list = new ArrayList<>();
 		list.add(user);
-		Utils.sendCHAT(message, list);
+		LobbyUtils.sendCHAT(message, list);
 	}
 }

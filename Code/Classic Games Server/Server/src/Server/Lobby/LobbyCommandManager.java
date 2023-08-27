@@ -10,7 +10,6 @@ import Server.Lobby.Objects.Command;
 import Server.Lobby.Objects.CommandExecutor;
 import Server.Lobby.Objects.CommandSender;
 import Server.Lobby.Objects.Player;
-import Server.Objects.Utils;
 
 public class LobbyCommandManager implements CommandExecutor {
 	
@@ -58,7 +57,7 @@ public class LobbyCommandManager implements CommandExecutor {
 			if(args.length == 0)
 				sender.sendMessage("&4Uso correcto: &c/say <mensaje>");
 			else if(args.length > 0) {
-				ServerChat.broadcastMessage("[" + sender.getName() + "] " + Utils.argsToString(args));
+				LobbyChat.broadcastMessage("[" + sender.getName() + "] " + LobbyUtils.argsToString(args));
 			}
 			return true;
 		} else if (cmd.getName().equalsIgnoreCase("tp")) {

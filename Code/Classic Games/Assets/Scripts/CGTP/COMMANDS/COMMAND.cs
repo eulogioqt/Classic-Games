@@ -6,9 +6,8 @@ public class COMMAND {
 	private string command;
 	private CommandType type;
 
-	public COMMAND(byte[] dp) {
-		this.command = Encoding.ASCII.GetString(dp);;
-		
+	public COMMAND(string command) {
+		this.command = command;
 		this.type = getCommandType(command);
 	}
 	
@@ -20,7 +19,7 @@ public class COMMAND {
 		return type;
 	}
 	
-	private CommandType getCommandType(string command) {
+	public static CommandType getCommandType(string command) {
         CommandType t;
         try {
             string str = command.Contains(" ") ? command.Split(" ")[0] : command;

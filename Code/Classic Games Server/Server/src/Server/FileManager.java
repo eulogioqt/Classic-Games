@@ -7,7 +7,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import Server.Lobby.LobbyServer;
-import Server.Objects.ChatColor;
 
 public class FileManager {
 	public static void writeFile(String path, String fileName, String data) {

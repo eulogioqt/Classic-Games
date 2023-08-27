@@ -1,10 +1,10 @@
 package Server.Lobby.Commands.External;
 
-import Server.Lobby.ServerChat;
+import Server.Lobby.LobbyChat;
+import Server.Lobby.LobbyUtils;
 import Server.Lobby.Objects.Command;
 import Server.Lobby.Objects.CommandExecutor;
 import Server.Lobby.Objects.CommandSender;
-import Server.Objects.Utils;
 
 public class BroadcastCommand implements CommandExecutor {
 
@@ -13,7 +13,7 @@ public class BroadcastCommand implements CommandExecutor {
 		if(args.length == 0)
 			sender.sendMessage("&4Uso correcto: &c/broadcast <mensaje>");
 		else if(args.length > 0)
-			ServerChat.broadcastMessage(Utils.argsToString(args));
+			LobbyChat.broadcastMessage(LobbyUtils.argsToString(args));
 		return true;
 	}
 

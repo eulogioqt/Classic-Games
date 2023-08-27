@@ -6,6 +6,7 @@ using System.Text;
 using System.Collections;
 using System;
 using System.Collections.Generic;
+using LOBBY;
 
 public class UDPClient : MonoBehaviour {
     // Started by @eulogioqt on 13/08/2023
@@ -17,6 +18,7 @@ public class UDPClient : MonoBehaviour {
     private Dictionary<string, Player> users;
     private Player player = null;
 
+    public GameObject lobbyMenuGameObject;
     public Text positionText;
 
     public Text onlineText;
@@ -24,6 +26,7 @@ public class UDPClient : MonoBehaviour {
     private string myName;
 
     public Button disconnectButton;
+    public Button parchisButton;
 
     public SmartButton upButton;
     public SmartButton rightButton;
@@ -109,29 +112,33 @@ public class UDPClient : MonoBehaviour {
     }
 
     private void Start() {
+        lobbyMenuGameObject.SetActive(false);
+
         loadButtons();
     }
 
     private void loadButtons() {
-        disconnectButton.onClick.AddListener(delegate { onDisconnect("LEAVE"); });
+        disconnectButton.onClick.AddListener(onLeave);
+        parchisButton.onClick.AddListener(joinParchis);
     }
 
-    public void onConnect(COMMAND cmd, IPEndPoint server, UdpClient client, User user) {
+    public void onConnect(IPEndPoint server, UdpClient client, User user) {
         this.server = server;
         this.client = client;
         this.user = user;
 
+        lobbyMenuGameObject.SetActive(true);
+
         timeout = long.MaxValue;
-        Chat.getInstance().resetChat();
+        LobbyChat.getInstance().resetChat();
 
         player = new GameObject(user.getData().getName()).AddComponent<Player>();
         player.initPlayer(user.getData().getName(), true);
 
-        processCommand(cmd);
         StartCoroutine(getResponse());
     }
 
-    private void onDisconnect(string message) {
+    public void onDisconnect() {
         try {
             byte[] sendBytes = Encoding.ASCII.GetBytes(ADIOS.getMessage());
             client.Send(sendBytes, sendBytes.Length);
@@ -140,28 +147,33 @@ public class UDPClient : MonoBehaviour {
             client = new UdpClient();
         } catch (Exception) { }
 
-        if (message.Equals("LEAVE")) {
-            JoinMenuController.getInstance().setMenuActive(true);
-            JoinMenuController.getInstance().refreshList();
-        } else ConnectionController.getInstance().setDisconnected(message, true);
-
         GameObject field = GameObject.FindGameObjectWithTag("Field");
-        for (int i = 0; i < field.transform.childCount; i++) {
+        for (int i = 0; i < field.transform.childCount; i++)
             Destroy(field.transform.GetChild(i).gameObject);
-        }
+
+        lobbyMenuGameObject.SetActive(false);
     }
 
-    private void sendSTATUS() {
-        byte[] sendBytes = Encoding.ASCII.GetBytes(STATUS.getMessage());
+    private void onLeave() {
+        onDisconnect();
+        JoinMenuController.getInstance().setMenuActive(true);
+        JoinMenuController.getInstance().refreshList();
+    }
 
-        client.Send(sendBytes, sendBytes.Length);
+    private void joinParchis() {
+        ConnectionController.getInstance().tryConnectingParchis(server.Address, server.Port + 1, user);
+    }
+
+    private void disconnectUser(string message) {
+        onDisconnect();
+        ConnectionController.getInstance().setDisconnected(message, true);
     }
 
     private IEnumerator timeoutOnSeconds(int n) {
         yield return new WaitForSeconds(n);
 
         if (timeout == long.MaxValue)
-            onDisconnect("El servidor no responde");
+            disconnectUser("El servidor no responde");
     }
 
 
@@ -173,7 +185,7 @@ public class UDPClient : MonoBehaviour {
             timeout = long.MaxValue;
             StartCoroutine(timeoutOnSeconds(10));
 
-            sendSTATUS();
+            send(STATUS.getMessage());
         }
     }
 
@@ -182,7 +194,7 @@ public class UDPClient : MonoBehaviour {
     private void FixedUpdate() {
         waitFrames++;
 
-        if (player != null && !Chat.getInstance().isChatOpen()) {
+        if (player != null && !LobbyChat.getInstance().isChatOpen()) {
             Vector3 position = player.transform.localPosition;
             Vector3 size = player.GetComponent<RectTransform>().sizeDelta;
             positionText.text = position.x + ", " + position.y;
@@ -233,10 +245,7 @@ public class UDPClient : MonoBehaviour {
         if (cmd.getType() == CommandType.CHAT) {
             CHAT msg = CHAT.process(cmd.getCommand());
 
-            Chat.getInstance().updateNotReaded();
-
-            Chat.getInstance().addMessage(msg.getMessage());
-            Chat.getInstance().updateChatGUI();
+            LobbyChat.getInstance().addMessage(msg.getMessage());
         } else if (cmd.getType() == CommandType.MOVE) {
             MOVE msg = MOVE.process(cmd.getCommand());
 
@@ -272,16 +281,16 @@ public class UDPClient : MonoBehaviour {
 
             onlineUsers = msg.getOnlineUsers();
             foreach (string line in msg.getChat())
-                Chat.getInstance().addMessage(line);
+                LobbyChat.getInstance().getCGText().addText(line);
 
+            LobbyChat.getInstance().updateChatGUI();
             updateInfo();
-            Chat.getInstance().updateChatGUI();
         } else if (cmd.getType() == CommandType.STATUS) {
             send(ALIVE.getMessage());
         } else if (cmd.getType() == CommandType.DISCONNECT) {
             DISCONNECT msg = DISCONNECT.process(cmd.getCommand());
 
-            onDisconnect(msg.getDisconnectMessage());
+            disconnectUser(msg.getDisconnectMessage());
         } else if (cmd.getType() == CommandType.UNKNOWN) {
             Debug.Log("Algo salio mal: " + cmd.getCommand());
         }
@@ -291,13 +300,13 @@ public class UDPClient : MonoBehaviour {
         while (client.Client != null) {
             try {
                 if (client.Available > 0) {
-                    COMMAND cmd = new COMMAND(client.Receive(ref server));
+                    COMMAND cmd = new COMMAND(Encoding.ASCII.GetString(client.Receive(ref server)));
                     timeout = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
                     processCommand(cmd);
                 }
             } catch (Exception e) {
-                onDisconnect(player != null ? e.Message : "No se pudo conectar con el servidor: Puerto inalcanzable");
+                disconnectUser(player != null ? e.Message : "No se pudo conectar con el servidor: Puerto inalcanzable");
                 break;
             }
             yield return new WaitForSeconds(0);

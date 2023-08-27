@@ -3,13 +3,13 @@ package Server.Lobby.Commands;
 import java.util.Arrays;
 
 import Server.Lobby.LobbyServer;
-import Server.Lobby.ServerChat;
+import Server.Lobby.LobbyUtils;
+import Server.Lobby.LobbyChat;
 import Server.Lobby.Objects.Command;
 import Server.Lobby.Objects.CommandExecutor;
 import Server.Lobby.Objects.CommandSender;
 import Server.Lobby.Objects.Player;
 import Server.Lobby.Objects.UDPLobbyServer;
-import Server.Objects.Utils;
 
 public class KickCommand implements CommandExecutor {
 
@@ -20,8 +20,8 @@ public class KickCommand implements CommandExecutor {
 		else if (args.length > 0){
 			Player p = LobbyServer.getPlayer(args[0]);
 			if(p != null) {
-				String motivo = args.length == 1 ? "Has sido expulsado del servidor" :  Utils.argsToString(Arrays.copyOfRange(args, 1, args.length));
-				ServerChat.broadcastMessage("&4" + sender.getName() + "&c ha expulsado a &4" + p.getName() +"&c por: &4" + motivo);
+				String motivo = args.length == 1 ? "Has sido expulsado del servidor" :  LobbyUtils.argsToString(Arrays.copyOfRange(args, 1, args.length));
+				LobbyChat.broadcastMessage("&4" + sender.getName() + "&c ha expulsado a &4" + p.getName() +"&c por: &4" + motivo);
 				UDPLobbyServer.kick(p.getUser(), motivo);
 			} else
 				sender.sendMessage("&cEl jugador &4&n" + args[0] + "&c no esta conectado");

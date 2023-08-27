@@ -18,7 +18,7 @@ public class PROTOCOL_COMMAND {
 		this.address = dp.getAddress();
 		this.port = dp.getPort();
 		
-		this.type = getCommandType(command);
+		this.type = CommandType.getCommandType(command);
 	}
 	
 	public String getCommand() {
@@ -39,16 +39,5 @@ public class PROTOCOL_COMMAND {
 	
 	public String getSenderKey() {
 		return address + ":" + port;
-	}
-	
-	private CommandType getCommandType(String command) {
-		CommandType t;
-		try {
-			String str = command.contains(" ") ? command.split(" ")[0] : command;
-			t = CommandType.valueOf(str);
-		} catch (Exception e) {
-			t = CommandType.UNKNOWN;
-		}
-		return t;
 	}
 }

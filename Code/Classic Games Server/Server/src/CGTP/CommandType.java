@@ -12,5 +12,16 @@ public enum CommandType {
 	ON,
 	PING,
 	STATUS,
-	UNKNOWN
+	UNKNOWN;
+	
+	public static CommandType getCommandType(String command) {
+		CommandType t;
+		try {
+			String str = command.contains(" ") ? command.split(" ")[0] : command;
+			t = CommandType.valueOf(str);
+		} catch (Exception e) {
+			t = CommandType.UNKNOWN;
+		}
+		return t;
+	}
 }

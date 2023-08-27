@@ -60,7 +60,7 @@ public class ServerObject : MonoBehaviour {
         while (!answered && DateTimeOffset.UtcNow.ToUnixTimeSeconds() - time < 10) {
             try {
                 if(client.Available > 0) {
-                    COMMAND cmd = new COMMAND(client.Receive(ref server));
+                    COMMAND cmd = new COMMAND(Encoding.ASCII.GetString(client.Receive(ref server)));
                     if (cmd.getType() == CommandType.PING) {
                         PING msg = PING.process(cmd.getCommand());
                         answered = true;
@@ -104,7 +104,7 @@ public class ServerObject : MonoBehaviour {
     }
 
     public void joinServer(User user) {
-        ConnectionController.getInstance().tryConnecting(IP, port, user);
+        ConnectionController.getInstance().tryConnectingLobby(IP, port, user);
     }
 
     public void initServer(string serverName, IPAddress IP, int port) {
