@@ -1,0 +1,26 @@
+lo de version que tengo en whatsapp
+un comando ping para el servidor que te de info nombre del server
+los usuarios conectados y calcule el tiempo de respuesta
+
+VERSION
+MOTD
+CHAT EN EL SCRIPT CHAT
+
+servidor configurable
+el MOTD en un archivo y cosas en los archivos tmb la foto del server y el chat
+y el mundo del server que se cree en el server tmb
+y que la camara y el mapa sea mas grande
+
+pantalla dei nicio donde configurar el jugador 
+pantalla de inicio donde acceder a la lista de servers
+
+hacer sistema de cuentas
+hacer el /login
+entonces ya te puedes personalizar el personaje dentro del server
+
+
+
+el lobby, es el server principal, ahi habra ademas de lo del servidor, una lista de los usuarios
+en la network, de manera que cuando uno desconecte definitivo con ADIOS lo saque de esa lista
+pero si usa la palabra JOIN para irse a otro server lo saca de la lista local y no de la network
+el parchis sera TCP 

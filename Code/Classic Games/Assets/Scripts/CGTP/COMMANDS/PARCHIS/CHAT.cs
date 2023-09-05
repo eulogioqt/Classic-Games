@@ -4,6 +4,7 @@ namespace PARCHIS {
         private string message;
 
         private CHAT(string key, string message) {
+            this.key = key;
             this.message = message;
         }
 

@@ -68,7 +68,7 @@ public class ParchisUtils {
 	}
 	
 	public static void sendCHAT(ParchisUser sender, String message) {
-		for(ParchisUser user : ParchisUtils.getRestUsers(sender.getKey()))
+		for(ParchisUser user : TCPParchisServer.users.values())
 			user.send(CHAT.getMessage(sender.getKey(), message));
 	}
 	

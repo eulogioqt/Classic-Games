@@ -40,8 +40,8 @@ public class TCPParchisServer {
 		WindowsConsole.println("&4&lEl programa ha finalizado");
 	}
 	
-	public static void onNewConnection(Socket s) {
-		ParchisUser user = new ParchisUser(s.getInetAddress(), s.getPort(), new UserData(""), s);
+	public static void onNewConnection(Socket s) { // tengo que hacer lo de HOLA nombre
+		ParchisUser user = new ParchisUser(s.getInetAddress(), s.getPort(), new UserData("macintosh"), s);
 		
 		if (users.size() < 4) {
 			user.setPlayer(new Player(ParchisUtils.getNewColor(), user));
@@ -58,7 +58,7 @@ public class TCPParchisServer {
 
 	public static void processCommand(ParchisUser sender, String message) {
 		CommandType cmdType = CommandType.getCommandType(message);
-		
+		WindowsConsole.println("Recibido de " + sender.getData().getName() + ": " + message);
 		if(cmdType == CommandType.CHAT) {
 			CHAT msg = CHAT.process(message);
 			

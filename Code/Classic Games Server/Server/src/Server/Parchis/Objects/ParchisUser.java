@@ -59,6 +59,7 @@ public class ParchisUser extends User implements Runnable {
 	}
 	
 	public void send(String message) {
+		WindowsConsole.println(super.getData().getName() + " sent: " + message);
 		out.println(message);
 	}
 	

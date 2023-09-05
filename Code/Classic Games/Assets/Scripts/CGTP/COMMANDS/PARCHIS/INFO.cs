@@ -10,6 +10,7 @@ namespace PARCHIS {
 
         private INFO(Dictionary<string, Player> users, TeamColor color) {
             this.users = users;
+            this.color = color;
         }
 
         public Dictionary<string, Player> getUsers() {
@@ -39,7 +40,7 @@ namespace PARCHIS {
                     TeamColor playerColor;
                     Enum.TryParse(c, out playerColor);
 
-                    Player newPlayer = new GameObject(name, typeof(Player)).GetComponent<Player>();
+                    Player newPlayer = new Player();
                     newPlayer.initPlayer(name, playerColor);
 
                     users.Add(key, newPlayer);

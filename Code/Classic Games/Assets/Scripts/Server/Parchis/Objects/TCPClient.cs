@@ -69,6 +69,9 @@ public class TCPClient : MonoBehaviour {
 
         parchisMenuGameObject.SetActive(false);
 
+        foreach (TableroColor tc in tableroColor.Values)
+            tc.unsetPlayer();
+
         ConnectionController.getInstance().tryConnectingLobby(server.Address, server.Port - 1, user);
     }
 
@@ -82,7 +85,8 @@ public class TCPClient : MonoBehaviour {
                     COMMAND cmd = new COMMAND(new string(responseData.Substring(0, responseData.Length - 2)));
                     processCommand(cmd);
                 }
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 Debug.Log(e.Message);
                 break;
             }
@@ -95,11 +99,11 @@ public class TCPClient : MonoBehaviour {
         if (cmd.getType() == CommandType.CHAT) {
             CHAT msg = CHAT.process(cmd.getCommand());
 
-            ParchisChat.getInstance().addMessage(users[msg.getKey()] + ": " + msg.getMessage());
+            ParchisChat.getInstance().addMessage(users[msg.getKey()].getPlayerName() + ": " + msg.getMessage());
         } else if (cmd.getType() == CommandType.INFO) {
             INFO msg = INFO.process(cmd.getCommand());
 
-            player = new GameObject(user.getData().getName(), typeof(Player)).GetComponent<Player>();
+            player = new Player();
             player.initPlayer(user.getData().getName(), msg.getColor());
 
             users = msg.getUsers();
@@ -111,7 +115,7 @@ public class TCPClient : MonoBehaviour {
         } else if (cmd.getType() == CommandType.ON) {
             ON msg = ON.process(cmd.getCommand());
 
-            Player newPlayer = new GameObject(user.getData().getName(), typeof(Player)).GetComponent<Player>();
+            Player newPlayer = new Player();
             newPlayer.initPlayer(user.getData().getName(), msg.getColor());
             
             tableroColor[newPlayer.getColor()].setPlayer(newPlayer);
@@ -120,7 +124,8 @@ public class TCPClient : MonoBehaviour {
         } else if (cmd.getType() == CommandType.OFF) {
             OFF msg = OFF.process(cmd.getCommand());
 
-            Destroy(users[msg.getKey()].gameObject);
+            tableroColor[users[msg.getKey()].getColor()].unsetPlayer();
+
             users.Remove(msg.getKey());
         } else if (cmd.getType() == CommandType.UNKNOWN) {
             Debug.Log("Algo salio mal: " + cmd.getCommand());
@@ -128,7 +133,7 @@ public class TCPClient : MonoBehaviour {
     }
 
     private void send(string message) {
-        byte[] data = Encoding.ASCII.GetBytes(user.getData().getName() + ": " + message + "\n");
+        byte[] data = Encoding.ASCII.GetBytes(message + "\n");
         stream.Write(data, 0, data.Length);
         stream.Flush();
     }

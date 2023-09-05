@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace PARCHIS {
-    public class Player : MonoBehaviour {
+    public class Player {
         private string playerName;
         private TeamColor color;
 

@@ -12,28 +12,22 @@ public class TableroColor : MonoBehaviour {
 
     public GameObject userImageGameObject;
 
-    void Start() {
-        nameGameObject.SetActive(false);
-        userImageGameObject.SetActive(false);
-    }
-
-    void Update() {
-        
+    private void Start() {
+        if (player == null)
+            gameObject.SetActive(false);
     }
 
     public void setPlayer(Player player) {
         this.player = player;
 
         nameText.text = player.getPlayerName();
-        nameGameObject.SetActive(true);
-        userImageGameObject.SetActive(true);
+        gameObject.SetActive(true);
     }
 
     public void unsetPlayer() {
         this.player = null;
 
         nameText.text = "";
-        nameGameObject.SetActive(false);
-        userImageGameObject.SetActive(false);
+        gameObject.SetActive(false);
     }
 }
